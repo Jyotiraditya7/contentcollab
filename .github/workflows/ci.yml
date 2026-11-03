@@ -44,6 +44,23 @@ jobs:
               /tmp/$overlay.yaml
           done
 
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+
   # Builds the API image exactly as the deploy workflow will, without pushing it,
   # so a Dockerfile that no longer builds fails the pull request rather than
   # the first deploy. The image is built in a container (same base image as
