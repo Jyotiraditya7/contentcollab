@@ -72,6 +72,7 @@ tests/               cross-service checks: restart, scale, end-to-end smoke
 .github/workflows/   CI on pull requests, deploy on merge to main
 docs/
   ARCHITECTURE.md    decisions with the options weighed; the source for proposal section 2
+  BUILD_LOG.md       dated record of the cluster build: decisions, evidence, incidents, sources
   PLAN.md            stages, owners, integration, risks; the source for proposal section 3
   PRACTICES.md       the engineering practices we hold to, with their course sources
   PROPOSAL.md        the proposal, one section per owner, due 7 Nov
