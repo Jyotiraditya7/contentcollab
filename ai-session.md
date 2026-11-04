@@ -78,3 +78,18 @@ Render the overlay with the commit SHA substituted for `latest` and check the re
 - Checked against the sources: lecture 8 slides (p53-55, p67, p73, p76-81, p92, p106-111) and DigitalOcean's push-to-deploy guide, which uses `digitalocean/action-doctl` and `doctl kubernetes cluster kubeconfig save --expiry-seconds 600`. The static `KUBECONFIG` secret was dropped because a doctl kubeconfig authenticates through doctl itself.
 - Tested: the API with Redis absent answered `/health` 503 and stayed up, then 200 once Redis started, in the same process; a CI step now repeats that against the built image. Both overlays render; the bring-up's registry check found the image for the current `main` commit.
 - Kept as a condition: the smoke-and-rollback step runs only once a smoke URL is set, so deploys don't roll back before DNS and TLS exist.
+
+## Gateway namespace fault and its CI check (#59), 4 November 2026
+
+### Prompt
+
+After bring-up the Gateway had no address in the `contentcollab` namespace, though every pod was running. Why, and how do we stop it happening again?
+
+### AI Response
+
+The Gateway and HTTPRoute were in `default`: a kustomization's `namespace` field covers only that kustomization's resources, and the DigitalOcean overlay adds the Gateway without setting one. Set the namespace in the overlay, add a CI step that fails when any rendered object other than the Namespace falls outside `contentcollab`, push the check before the fix so it can be seen failing, then move the live objects by creating them in `contentcollab` before deleting the copies in `default`.
+
+### What Your Team Did With It
+
+- Checked against the sources: Kustomize's `namespace` reference, the GitHub runner image list (yq preinstalled) and the NGINX Gateway Fabric v2.8.0 chart values, which is also where product telemetry, failing on every run, was turned off.
+- Tested: CI failed on the check alone, naming `Gateway/contentcollab`, and passed with the fix. Recorded in `docs/BUILD_LOG.md`.
