@@ -12,9 +12,9 @@ Owner: Yiqing Liu. Problem, intended users, why it is worth addressing, limitati
 
 ### 2.1 Objectives
 
-ContentCollab is a workspace where people share files and discuss them in place. Files, versions and comments stay together instead of scattering across email, chat and file copies.
+ContentCollab is a place where people share files and discuss them in place. Files, versions and comments stay together instead of scattering across email, chat and file copies.
 
-Anyone can sign up, create a workspace and invite people as Owner, Editor, Commenter or Viewer, the roles Google Drive uses [11]; a link with an expiry admits people without an account. Everyone viewing a version sees new comments and pins (notes attached to a spot on the page) without refreshing. Each upload is a version, and any version can be restored.
+Anyone can sign up, upload a document and share it with people as Owner, Editor, Commenter or Viewer, the roles Google Drive uses [11]; a link with an expiry admits people without an account. Everyone viewing a version sees new comments and pins (notes attached to a spot on the page) without refreshing. Each upload is a version, and any version can be restored.
 
 The cloud objective is resilience: an API pod can crash, the database can move to another node, or a release can roll out, and no user loses a comment.
 
@@ -24,7 +24,7 @@ The cloud objective is resilience: an API pod can crash, the database can move t
 
 *Figure 1. Components and their connections. Solid lines carry application traffic; dashed lines are configuration, deployment and monitoring.*
 
-A small React web app calls a JSON API through one Gateway, which terminates HTTPS for `contentcollab.app`; it exists because live comments in two browsers cannot be shown with curl. Files live in DigitalOcean Spaces, object storage reachable from every replica over HTTP; users, workspaces, versions and comments live in PostgreSQL on block storage [7].
+A small React web app calls a JSON API through one Gateway, which terminates HTTPS for `contentcollab.app`; it exists because live comments in two browsers cannot be shown with curl. Files live in DigitalOcean Spaces, object storage reachable from every replica over HTTP; users, documents, shares, versions and comments live in PostgreSQL on block storage [7].
 
 ### 2.3 Key design decisions
 
@@ -53,7 +53,7 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 | Requirement [10] | Our use |
 |---|---|
 | Docker and Docker Compose | One container per service; one Compose file runs the stack locally with health checks (API, PostgreSQL and Redis run since 25 October) [6] |
-| PostgreSQL | Users, workspaces, roles, versions and comments, linked by foreign keys and changed inside transactions |
+| PostgreSQL | Users, documents, shares with their roles, versions and comments, linked by foreign keys and changed inside transactions |
 | Persistent storage | A persistent volume backed by a DigitalOcean Volume; the demonstration deletes the database pod and shows the data survives |
 | Orchestration | DigitalOcean Kubernetes: Deployments, Services, a StatefulSet for PostgreSQL, a HorizontalPodAutoscaler for the API, each a manifest the cluster keeps converged to its desired state [8]; manifests tested on minikube first, Swarm as the fallback if the cluster is unstable on 14 November [9] |
 | Deployment provider | DigitalOcean, the course's IaaS provider [7]; Fly.io's Kubernetes service is a paid beta the course does not recommend [12] |
@@ -61,8 +61,8 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 
 ### 2.6 Core features
 
-- **Upload and preview.** PDFs and images render in the browser; Office files are converted to PDF by the worker, with the original kept for download; other types are stored, versioned and downloadable.
-- **Workspaces and roles.** Invitations by email; Owner, Editor, Commenter and Viewer checked by one middleware before every action.
+- **Upload and preview.** PDFs and images render in the browser; other types, Office files included, are stored, versioned and downloadable.
+- **Sharing and roles.** Share with a user by email or by a link with an expiry; Owner, Editor, Commenter and Viewer checked by one middleware before every action.
 - **Comments.** Threads, pins on a page position, @-mentions, live for everyone viewing the version.
 - **Versions.** Every upload is a version; any version can be restored.
 
