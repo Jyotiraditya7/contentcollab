@@ -57,10 +57,6 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 | Persistent storage | A persistent volume backed by a DigitalOcean Volume; the demonstration deletes the database pod and shows the data survives |
 | Orchestration | DigitalOcean Kubernetes: Deployments, Services, a StatefulSet for PostgreSQL, a HorizontalPodAutoscaler for the API, each a manifest the cluster keeps converged to its desired state [8]; manifests tested on minikube first, Swarm as the fallback if the cluster is unstable on 14 November [9] |
 | Deployment provider | DigitalOcean, the course's IaaS provider [7]; Fly.io's Kubernetes service is a paid beta the course does not recommend [12] |
-
-[13] DigitalOcean, "Droplet pricing." https://www.digitalocean.com/pricing/droplets
-
-[14] DigitalOcean, "Spaces object storage pricing." https://www.digitalocean.com/pricing/spaces-object-storage
 | Monitoring | DigitalOcean alerts on CPU, memory and disk; request counts, errors and latency at `/metrics`; Datadog for dashboards and container logs |
 
 ### 2.6 Core features
@@ -116,3 +112,7 @@ Owner: Jyotiraditya Kale. Initial understanding (10 October notes), technical hy
 [11] Google, "Share files from Google Drive," Google Drive Help. https://support.google.com/drive/answer/2494822
 
 [12] ECE1779 course project handout, "Deployment Provider" and "Note on Orchestration on Fly.io," Fall 2026. https://www.eecg.utoronto.ca/~cying/courses/ece1779-cloud/project/handout/
+
+[13] DigitalOcean, "Droplet pricing." https://www.digitalocean.com/pricing/droplets
+
+[14] DigitalOcean, "Spaces object storage pricing." https://www.digitalocean.com/pricing/spaces-object-storage
