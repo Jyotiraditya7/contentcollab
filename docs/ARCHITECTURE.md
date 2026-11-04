@@ -70,7 +70,7 @@ The course accepts Docker Swarm (service replication and routing-mesh load balan
 | Persistent storage | PersistentVolumeClaim bound to a DigitalOcean block-storage volume; the volume follows the pod if it is rescheduled within the zone | a named volume lives on one node; the service must be pinned to that node |
 | Secrets and config | Secret and ConfigMap objects mounted as files or env | Docker secrets mounted as files (lecture 5) |
 | Operations cost | manifests for every object, kubectl, a managed control plane; more to learn and more to misconfigure (a wrong storage class loses data) | one Compose file with a `deploy:` section; fewer concepts |
-| Cost (third-party pricing pages, confirm on digitalocean.com) | about $46 to $60 a month: $12 per node, $12 load balancer, $10 volume, control plane free | two $6 droplets |
+| Cost (DigitalOcean pricing pages, checked 4 Nov 2026) | about US$54 a month: two s-2vcpu-2gb nodes at $18, a $12 load balancer, a 5 GiB volume at $0.50, Spaces at $5; control plane free | two $6 droplets |
 
 Proposed: **DOKS**. The deciding points are the autoscaler and the volume handling: auto-scaling and high availability is one of our planned advanced features, and on Swarm the database volume ties the service to one node by hand. The cost is the learning curve and more objects to get right, which is why the manifests are tested on minikube first and Swarm remains the fallback: the same Compose file with a `deploy:` section would carry the stack if the cluster is not stable by 15 November.
 

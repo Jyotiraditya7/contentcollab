@@ -34,7 +34,7 @@ A small React web app calls a JSON API through one Gateway, which terminates HTT
 | Socket.IO with sticky sessions and the Redis adapter | Without affinity the long-polling fallback breaks across replicas; the adapter relays events between pods [3] | Needs affinity at the Gateway; WebSocket-only is the fallback |
 | Gateway API, not ingress-nginx | ingress-nginx was retired in March 2026 [1] | New objects to configure |
 | One PostgreSQL instance on a volume; files in Spaces | A volume attaches to one node; a file on one pod's disk is invisible to the others [4], [5], [7] | No database failover; the restart test is rehearsed |
-| Two small nodes | About US$46 a month shared by four [2] | Little headroom; load tests run before the demo |
+| Two small nodes | About US$54 a month shared by four: two US$18 nodes, a US$12 load balancer and US$5 for Spaces [2], [13], [14] | Little headroom; load tests run before the demo |
 
 ### 2.4 Failure handling
 
@@ -57,6 +57,10 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 | Persistent storage | A persistent volume backed by a DigitalOcean Volume; the demonstration deletes the database pod and shows the data survives |
 | Orchestration | DigitalOcean Kubernetes: Deployments, Services, a StatefulSet for PostgreSQL, a HorizontalPodAutoscaler for the API, each a manifest the cluster keeps converged to its desired state [8]; manifests tested on minikube first, Swarm as the fallback if the cluster is unstable on 14 November [9] |
 | Deployment provider | DigitalOcean, the course's IaaS provider [7]; Fly.io's Kubernetes service is a paid beta the course does not recommend [12] |
+
+[13] DigitalOcean, "Droplet pricing." https://www.digitalocean.com/pricing/droplets
+
+[14] DigitalOcean, "Spaces object storage pricing." https://www.digitalocean.com/pricing/spaces-object-storage
 | Monitoring | DigitalOcean alerts on CPU, memory and disk; request counts, errors and latency at `/metrics`; Datadog for dashboards and container logs |
 
 ### 2.6 Core features
