@@ -52,7 +52,7 @@ ingress-nginx was retired in March 2026 and gets no security fixes, so we do not
 
 ### D12. Socket.IO across replicas (decided 24 October, #17)
 
-Sticky sessions at the Gateway keep each client on one API pod, so Socket.IO keeps its HTTP long-polling fallback when a WebSocket connection fails; the Redis adapter carries broadcasts between pods. WebSocket-only transport is the fallback if the Gateway controller cannot provide session affinity. The Gateway's idle timeout is set above Socket.IO's 45 seconds.
+Sticky sessions at the Gateway keep each client on one API pod, so Socket.IO keeps its HTTP long-polling fallback when a WebSocket connection fails; the Redis adapter carries broadcasts between pods. WebSocket-only transport is the fallback if the Gateway controller cannot provide session affinity. Affinity comes from NGINX Gateway Fabric 2.8's cookie session persistence (open source since 2.8, an experimental Gateway API field, per the [NGF 2.8 release blog](https://blog.nginx.org/blog/nginx-gateway-fabric-2-8-ip-allow-and-deny-lists-passive-health-checks-and-cookie-based-session-persistence), checked 6 November 2026) or from `ip_hash` in an UpstreamSettingsPolicy, which needs the DigitalOcean load balancer to pass the client IP ([PROXY protocol on an HTTP load balancer](https://docs.digitalocean.com/products/kubernetes/how-to/configure-load-balancers/), checked 6 November 2026); if neither works, WebSocket-only. The Gateway's idle timeout is set above Socket.IO's 45 seconds.
 
 ### D0. Service model
 
