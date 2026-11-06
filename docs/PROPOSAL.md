@@ -2,7 +2,7 @@
 
 ECE1779 Introduction to Cloud Computing, Fall 2026.
 
-Team: Nabeegh Khan (1001388152), Milton Wang (1009114192), Jyotiraditya Kale (1013397370), Yiqing Liu (1008052580).
+Team: Nabeegh Khan (1001388152), Milton Wang (1009114192), Jyotiraditya Kale (1013397370), Yiqing (Eyrika) Liu (1008052580).
 
 ## 1. Motivation
 
@@ -18,7 +18,7 @@ Live co-editing needs complex concurrency control, so we focus on review. Office
 
 ContentCollab lets people share files and discuss them in place, so files, versions and comments stay together, not scattered across email and chat.
 
-Users upload a document and share it as Owner, Editor, Commenter or Viewer, the roles Google Drive uses [11], or by a link with an expiry. Everyone viewing a version sees new comments and pins (notes on a page position) without refreshing.
+Users upload a document and share it as Owner, Editor, Commenter or Viewer, as in Google Drive [11], or by a link with an expiry. Everyone viewing a version sees new comments and pins (notes on a page position) without refreshing.
 
 The cloud objective is resilience: an API pod can crash, the database can move to another node, or a release can roll out, and no user loses a comment.
 
@@ -28,7 +28,7 @@ The cloud objective is resilience: an API pod can crash, the database can move t
 
 *Figure 1. Components and their connections. Solid lines carry application traffic; dashed lines are configuration, deployment and monitoring.*
 
-A small React web app calls a JSON API through one Gateway, which terminates HTTPS for `contentcollab.app`. Files live in DigitalOcean Spaces, object storage every replica reaches over HTTP; users, documents, shares, versions and comments live in PostgreSQL on block storage [7].
+A small React web app calls a JSON API through one Gateway, which terminates HTTPS for `contentcollab.app`. Files live in DigitalOcean Spaces, object storage every replica reaches; users, documents, shares, versions and comments live in PostgreSQL on block storage [7].
 
 ### 2.3 Key design decisions
 
@@ -65,25 +65,25 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 
 ### 2.6 Core features
 
-- **Upload and preview.** PDFs and images render in the browser; other types, Office files included, are stored, versioned and downloadable.
+- **Upload and preview.** PDFs and images render in the browser; other types are stored, versioned and downloadable.
 - **Sharing and roles.** By email or by a link with an expiry; one middleware checks the role before every action.
 - **Comments.** Threads, pins on a page position, @-mentions, live for everyone viewing the version.
 - **Versions.** Every upload is a version; any version can be restored.
 
 ### 2.7 Advanced features
 
-We commit to four from the handout's list, each with an owner:
+We commit to four from the handout's list:
 
-1. **Security** (Eyrika, Nabeegh). bcrypt password hashes, JWT sessions, role checks on every route, expiring share links, HTTPS at the Gateway, credentials in Kubernetes Secrets [6].
-2. **CI/CD** (Nabeegh, running). GitHub Actions checks every pull request; a merge to `main` builds the images, pushes them to the GitHub Container Registry and rolls them out one pod at a time [8].
-3. **Real-time** (Jyotiraditya). Socket.IO with the Redis adapter pushes comments and pins to everyone viewing a version.
+1. **Security enhancements** (Eyrika, Nabeegh). bcrypt password hashes, JWT sessions, role checks on every route, expiring share links, HTTPS at the Gateway, credentials in Kubernetes Secrets [6].
+2. **CI/CD pipeline** (Nabeegh, running). GitHub Actions checks every pull request; a merge to `main` builds the image, pushes it to the GitHub Container Registry and rolls it out one pod at a time [8].
+3. **Real-time functionality** (Jyotiraditya). Socket.IO with the Redis adapter pushes comments and pins to everyone viewing a version.
 4. **Auto-scaling and high availability** (Nabeegh). A HorizontalPodAutoscaler, already in the manifests, keeps two to five API replicas on the two nodes; a stepped load test (#69) and a rolling update must drop no requests.
 
-Stretch goals, reported finished only if they are: **backup and recovery** (Milton), a nightly pg_dump to Spaces, and **email notifications through an external service** (Eyrika), on share and mention.
+Stretch goals, reported finished only if they are: **backup and recovery** (Milton), a nightly pg_dump to Spaces, and **integration with external services** (Eyrika): email on share and mention.
 
 ### 2.8 Scope and feasibility
 
-Live co-editing is out of scope: it needs a conflict-resolution engine, a separate product. We deployed before building features, and each feature ships with tests that run in CI. The cluster has run on DigitalOcean since 4 November; owners and schedule are in section 3.
+Live co-editing is out of scope (section 4.1). We deployed before building features, and each feature ships with tests that run in CI. The cluster has run on DigitalOcean since 4 November; owners and schedule are in section 3.
 
 ## 3. Project plan and team responsibilities
 
@@ -129,7 +129,7 @@ On 24 October we asked AI for the simplest way to run Socket.IO with a Redis ada
 
 [10] ECE1779 Lecture 1, Project requirements, slide 14.
 
-[11] Google, "Share files from Google Drive," Google Drive Help. https://support.google.com/drive/answer/2494822
+[11] Google, "Share and manage access to files and folders in Google Drive," checked 6 Nov. 2026. https://support.google.com/drive/answer/7166529
 
 [12] ECE1779 course project handout, "Deployment Provider" and "Note on Orchestration on Fly.io," Fall 2026. https://www.eecg.utoronto.ca/~cying/courses/ece1779-cloud/project/handout/
 
@@ -141,4 +141,4 @@ On 24 October we asked AI for the simplest way to run Socket.IO with a Redis ada
 
 [16] Hypothesis, "The #1 Social Annotation Tool for Higher Education," checked 6 Nov. 2026. https://web.hypothes.is/
 
-[17] NGINX, "NGINX Gateway Fabric 2.8: IP allow and deny lists, passive health checks, and cookie-based session persistence," NGINX Blog, checked 6 Nov. 2026. https://blog.nginx.org/blog/nginx-gateway-fabric-2-8-ip-allow-and-deny-lists-passive-health-checks-and-cookie-based-session-persistence
+[17] NGINX, "NGINX Gateway Fabric 2.8: IP allow and deny lists, passive health checks, and cookie-based session persistence," checked 6 Nov. 2026. https://blog.nginx.org/blog/nginx-gateway-fabric-2-8-ip-allow-and-deny-lists-passive-health-checks-and-cookie-based-session-persistence
