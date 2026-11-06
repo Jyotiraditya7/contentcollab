@@ -141,3 +141,19 @@ At 21 px the new api title measures 357 px against a 270 px box, so widen the bo
 - Measured rather than estimated: text widths came from the browser's own font metrics, and a script over the rendered SVG checked for overlapping text, badges covering other labels, and titles outside their boxes. It found none.
 - Looked at the rendered PNG: every label is readable. The Gateway arrow still ends on the api badge, as it did before.
 - Kept as it was: the image paths and captions in the README and the proposal; the proposal text and word count did not change.
+
+## The autoscaler that could not read CPU (#69), 6 November 2026
+
+### Prompt
+
+Before running the load test on DigitalOcean I checked the HPA, and it showed `cpu: <unknown>`. My approach: record the cause and the fix in the architecture first, put the install in a pinned script rather than a dashboard click, and make the load test refuse to run while the autoscaler is blind, with a test written before the code. How should metrics-server be installed on DOKS, and how do we tell from the HPA's status that it is really reading CPU?
+
+### AI Response
+
+Install the upstream metrics-server chart at a pinned version, with the same two replicas and verified kubelet TLS that DigitalOcean's own Marketplace stack uses. Treat the HPA as ready only when its AbleToScale and ScalingActive conditions are True and a CPU utilization is reported. Build the test fixture from the live status, and have the load test stop on a real kubectl error but continue with a warning when no cluster is reachable.
+
+### What Your Team Did With It
+
+- Checked against the sources: DigitalOcean's HPA guide, the chart's Chart.yaml at tag 3.14.0, the metrics-server compatibility table (Kubernetes 1.34 and later) and DigitalOcean's Marketplace stack, which installs the same chart unpinned.
+- Tested: the readiness test failed in CI before the module existed (run 42296688552) and passed after it (run 42297775626). On the live cluster the check reports `FailedGetResourceMetric` and the load test refuses to start.
+- An independent review caught that `--atomic` is deprecated in Helm 4, that PowerShell's `bash` is WSL rather than Git Bash, and that any kubectl failure let the load test continue. All three were fixed. Kubelet TLS on our cluster remains unverified until the install runs.
