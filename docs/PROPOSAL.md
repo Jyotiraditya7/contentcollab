@@ -81,7 +81,13 @@ Live co-editing of text is out of scope: it needs a conflict-resolution engine a
 
 ## 3. Project plan and team responsibilities
 
-Owner: Milton Wang. From `PLAN.md`: stages, division of work, integration strategy, dependencies and coordination, risks.
+For this project, we will divide it into multiple parts, with each person's scope showing their own commits, Issues, and pull requests on GitHub. Eyrika will work on the backend API, tags, and email notifications. Jyotiraditya will work on the backend live updates and with Eyrika on the API. Milton will work on the front end, backups, and API documentation. Nabeegh will work on the cloud orchestration and CI/CD pipeline. 
+
+We will integrate the components through weekly milestones, where we first work on the schema and API contract before building features against them. The schema, authentication, documents and shares are the critical path. Real-time and the frontend build on them, so they merge first, one pull request at a time. The 14 November checkpoint is measured against them. 
+
+To maintain code quality, prevent integration bottlenecks, and avoid needing to resolve problems at the last minute, we will follow a weekly testing cadence. We will also use the WhatsApp group chat and during weekly group meetings (Saturday, 3:30 p.m) for quick check-ins and GitHub Issues and pull requests to resolve technical problems. We will use the Issues on the GitHub repository and assign reviewers for each other’s work to verify functionality. Code changes require one review while reports and documentation will be reviewed by all four of us, requiring one approval to merge. The skeleton was completed on November 1. We will work on the core features and cloud in parallel until November 14, the real-time and additional features on November 9-20, with checkpoints on November 14 and 20. We will end work on features on the demonstration path on November 21 and do load tests and two rehearsals before the presentation, on November 21-24.   
+
+We are also aware that unexpected issues may arise. These include a feature or stage slipping, a late feature, pod or volume losses, or issues with deployment. If the cluster is down during the presentation, the demonstration will run from the local Compose stack with the same data. We will exclude additional features that do not work from the demonstration, have those who are ahead take up work on open issues, and use the pg_dump backup to prevent volume loss.
 
 ## 4. Initial team reasoning and AI-assisted exploration
 
