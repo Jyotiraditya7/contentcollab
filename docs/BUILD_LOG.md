@@ -72,3 +72,19 @@ Entry format: what was done; decision and the option it beat; evidence; sources 
 - **Decision:** `scripts/metrics-server.sh` installs the upstream chart pinned at 3.14.0 (metrics-server 0.9.0, supported on Kubernetes 1.34 and later; the cluster runs 1.37), with two replicas and kubelet TLS verified, as DigitalOcean's own Marketplace stack does. The 1-Click install was rejected because it is a dashboard click and unpinned. `scripts/hpa-ready.mjs` exits 1 while the HPA cannot read CPU, and the load test refuses to start in that state.
 - **Check first:** the readiness test went in before the module. CI run 42296688552 failed on it, and run 42297775626 passed. Against the live cluster the check still exits 1 until the install runs.
 - **Sources (checked 6 Nov):** [DigitalOcean HPA guide](https://docs.digitalocean.com/products/kubernetes/how-to/set-up-autoscaling/), [metrics-server chart 3.14.0](https://github.com/kubernetes-sigs/metrics-server/blob/metrics-server-helm-chart-3.14.0/charts/metrics-server/Chart.yaml), [DigitalOcean Marketplace stack](https://github.com/digitalocean/marketplace-kubernetes/tree/master/stacks/metrics-server).
+
+### metrics-server installed; first stepped load test (#69, PR #72)
+
+- **Done:** metrics-server installed with `scripts/metrics-server.sh` (chart 3.14.0, metrics-server 0.9.0, two replicas, one per node). The HPA reads CPU (`cpu: 10%/70%`), and kubelet TLS works on DOKS without the insecure flag.
+- **Run:** `BASE=https://contentcollab.app node scripts/loadtest.mjs`, steps of 60 s against `/health`:
+
+| target req/s | achieved req/s | p50 ms | p95 ms | errors % | failed | API replicas at end of step |
+|---|---|---|---|---|---|---|
+| 10 | 9.2 | 59 | 75 | 0.00 | 0 | 2 |
+| 25 | 23.0 | 58 | 88 | 0.00 | 0 | 2 |
+| 50 | 46.1 | 58 | 92 | 0.00 | 0 | 2 |
+| 100 | 92.2 | 60 | 87 | 0.00 | 0 | 2 |
+| 200 | 184.3 | 64 | 95 | 0.18 | 20 | 3 |
+
+- **Read:** CPU first crossed the 70% target during the 200 req/s step. The HPA went to 3 replicas near the end of that step and to 5 after the run had ended, so 60 s steps are shorter than its reaction time. With five pods one node reached 89% memory: on two 2 GB nodes, memory, not CPU, is the limit. Three of the five pods shared a node because the spread rule (#78) is not merged yet. Achieved rates run about 8% under target at every step, which points to the client's timer rather than the server.
+- **Open:** the script does not record why the 20 requests failed (5xx or timeout); add that before the next run. Next runs use longer steps above 150 req/s and the rolling update under load.
