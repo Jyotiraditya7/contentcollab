@@ -6,8 +6,6 @@ Team: Nabeegh Khan (1001388152), Milton Wang (1009114192), Jyotiraditya Kale (10
 
 ## 1. Motivation
 
-## 1. Motivation
-
 **Sharing a PDF is easy. Sharing the thinking behind it shouldn’t be hard.** Imagine a study group reviewing the same research paper: one student highlights a passage on their own copy, another asks a question in a group chat, and a third emails an annotated version. The document is shared, but the conversation is fragmented. Our proposed platform brings PDF annotations and discussions into one shared space, keeping feedback connected to the passages it refers to. Instead of piecing together separate notes and messages, users can review the document together and build a shared understanding.
 
 Therefore, we aim to construct a stateful, cloud-native content review platform. A user uploads a document or a PDF and shares it with named collaborators or by a scoped link. The collaborators comment and annotate on it. Updates appear live for everyone viewing the same version. We primarily address groups with a strong demand for concurrent document interaction and co-viewing. Our target users center on remote professionals, lab and industry teams, clients and contractors navigating legal terms or architectural designs, and any organization engaged in global collaboration. Additionally, we intend to bring this collaborative approach into academic environments, fostering deeper engagement between students and educators to enrich the learning process.
