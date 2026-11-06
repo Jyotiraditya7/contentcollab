@@ -83,13 +83,13 @@ Stretch goals, reported finished only if they are: **backup and recovery** (Milt
 
 ### 2.8 Scope and feasibility
 
-Live co-editing is out of scope (section 4.1). We deployed before building features, and each feature ships with tests that run in CI. The cluster has run on DigitalOcean since 4 November; owners and schedule are in section 3.
+Live co-editing is out of scope (section 4.1). We deployed before building features, and each feature ships with tests that run in CI once #71 merges. The cluster has run on DigitalOcean since 4 November; owners and schedule are in section 3.
 
 ## 3. Project plan and team responsibilities
 
 Each member's scope is visible in their own GitHub commits, Issues and pull requests. Eyrika: the backend API, including authentication and roles, tags, and email notifications. Jyotiraditya: comments, live updates, and the API with Eyrika. Milton: the frontend, backups, and API documentation. Nabeegh: the architecture and project-plan documents, research and coordination, the API skeleton, tests and worker, and the cloud stack (cluster, CI/CD, monitoring, autoscaling).
 
-We first agree on the schema and API contract, then build features against them. The schema, authentication, documents and shares are the critical path and merge first, one pull request at a time; real-time and the frontend build on them. The skeleton stage ran until 1 November and closes with the schema (#37). Core features and the cloud are built in parallel until the 14 November checkpoint, real-time and additional features from 9 to 20 November. Demonstration-path features freeze on 21 November; load tests and two rehearsals follow.
+We first agree on the schema and API contract, then build features against them. The schema, authentication, documents and shares are the critical path and merge first, one pull request at a time; real-time and the frontend build on them. The schema (#37), due 1 November, slipped; no feature code is merged yet. Recovery: schema merged by 9 November, critical-path pull requests open by 11 November for the 14 November checkpoint; real-time and additional features from 9 to 20 November. Demonstration-path features freeze on 21 November; load tests and two rehearsals follow.
 
 Every pull request runs lint and type checks in CI, and Jest and Supertest tests once #71 merges. Code changes need one review; proposal and report sections are reviewed by all four, with one approval merging; minutes and other documentation go straight to `main`. We meet weekly; technical problems are resolved in Issues and pull requests.
 
