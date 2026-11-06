@@ -125,3 +125,19 @@ Use a topology spread constraint on `kubernetes.io/hostname` with `maxSkew: 1` r
 - Checked against the sources: the Kubernetes topology spread and node assignment pages, live on 6 November. The default spread does not score nodes missing a zone label, and `kubectl get nodes` showed our nodes have none, so the real reason is stronger than the first draft's. The `ScheduleAnyway` reason was corrected to a drained or lost node, because with one node the skew is zero either way.
 - Tested: the check was pushed first and failed in CI (run 42286395192); with the constraint it passed (run 42287294841). An independent review also made the check assert `ScheduleAnyway` and the hash, which it had let slip.
 - Left open in the pull request: `ScheduleAnyway` is a preference, and spreading is not rebalanced after a scale-down.
+
+## Component diagram after the advanced-feature change (#69), 6 November 2026
+
+### Prompt
+
+Section 2.7 now commits four advanced features, but the diagram still shows two generic "Advanced feature" badges and "2 replicas". My plan: rename the existing badges to Security and CI/CD, add Real-time on Redis and Auto-scaling on the api in the same style, show the autoscaler's range on the api box, and re-render the PNG at the same size without changing the proposal text. Where do the new badges and the longer api title fit without covering lines or text?
+
+### AI Response
+
+At 21 px the new api title measures 357 px against a 270 px box, so widen the box to 330 px around the same centre and set that title at 18 px. Put the two api badges side by side, left of the line that leaves the box at x = 885. Move the Redis badge inside the cylinder top, because on the rim it would cover the arrowhead from the api. Size each badge to its text with the old badges' padding.
+
+### What Your Team Did With It
+
+- Measured rather than estimated: text widths came from the browser's own font metrics, and a script over the rendered SVG checked for overlapping text, badges covering other labels, and titles outside their boxes. It found none.
+- Looked at the rendered PNG: every label is readable. The Gateway arrow still ends on the api badge, as it did before.
+- Kept as it was: the image paths and captions in the README and the proposal; the proposal text and word count did not change.

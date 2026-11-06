@@ -58,3 +58,10 @@ Entry format: what was done; decision and the option it beat; evidence; sources 
 - **Decision:** a topology spread constraint on `kubernetes.io/hostname`, `maxSkew: 1`, `ScheduleAnyway`, with `matchLabelKeys: [pod-template-hash]`. Required pod anti-affinity was rejected: one pod per node would leave replicas 3 to 5 and the rolling-update surge pod Pending on two nodes. `DoNotSchedule` was rejected: a drained or lost node still counts as a domain, so replacement pods would wait.
 - **Check first:** a CI step asserts the constraint in both rendered overlays. Run 42286395192 failed on the current manifests; run 42287294841 passed with the constraint.
 - **Sources (checked 6 Nov):** [Pod Topology Spread Constraints](https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/), [Assigning Pods to Nodes](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/).
+
+### Component diagram names the four committed advanced features
+
+- **Changed:** the two generic badges ("Advanced feature 1" and "2") now read Security (on Kubernetes Secrets and the api) and CI/CD (on GitHub Actions). New badges in the same style: Real-time on Redis and Auto-scaling on the api, matching proposal section 2.7. The api box reads "2 to 5 replicas (HPA)", matching the HorizontalPodAutoscaler in `k8s/base/api.yaml`.
+- **Layout:** the longer api title needed a wider box (330 px, same centre, so every arrow still meets it) and an 18 px title, the only title below 21 px. The Real-time badge sits inside the top of the Redis cylinder, because on the rim it would hide the arrowhead from the api.
+- **Checked:** the PNG was re-rendered from the SVG at 1,600 × 920 in headless Chrome. A script over the rendered SVG found no overlapping text, every badge label inside its badge, and every title inside its box. The PNG was also inspected by eye.
+- **Provenance:** both files keep the content-credentials (C2PA) manifest they carried since 3 November, in the SVG's metadata and the PNG's `caBX` chunk. It was signed for the earlier content, so a C2PA validator will now report that the files changed after signing.
