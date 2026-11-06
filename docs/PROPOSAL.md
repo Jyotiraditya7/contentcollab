@@ -93,7 +93,7 @@ We first agree the schema and API contract, then build features against them. Th
 
 Every pull request runs lint and type checks in CI, and Jest and Supertest tests once #71 merges. Code changes need one review; proposal and report sections are reviewed by all four, and one approval merges; minutes and other documentation go straight to `main`. We coordinate on WhatsApp and at Saturday meetings (3:30 p.m.); technical problems are resolved in Issues and pull requests.
 
-Risks: a stage slipping, pod or volume loss, deployment problems, and the DigitalOcean cost, shared four ways. Features that do not work are left out of the demonstration; members who are ahead take open Issues. A nightly pg_dump backup restores data after a volume loss. If the cluster or an external service fails during the presentation, Nabeegh switches the demonstration to the local Docker Compose stack on the presenting laptop, seeded with the same data and rehearsed; Milton keeps presenting the frontend, and Eyrika and Jyotiraditya continue on the local stack.
+Risks: a stage slipping, pod or volume loss, deployment problems, and the DigitalOcean cost, shared four ways. Features that do not work are left out of the demonstration; members who are ahead take open Issues. A planned pg_dump backup restores data after a volume loss. If the cluster or an external service fails during the presentation, Nabeegh switches the demonstration to the local Docker Compose stack on the presenting laptop, seeded with the same data and rehearsed; Milton keeps presenting the frontend, and Eyrika and Jyotiraditya continue on the local stack.
 
 ## 4. Initial team reasoning and AI-assisted exploration
 
