@@ -88,3 +88,19 @@ Entry format: what was done; decision and the option it beat; evidence; sources 
 
 - **Read:** CPU first crossed the 70% target during the 200 req/s step. The HPA went to 3 replicas near the end of that step and to 5 after the run had ended, so 60 s steps are shorter than its reaction time. With five pods one node reached 89% memory: on two 2 GB nodes, memory, not CPU, is the limit. Three of the five pods shared a node because the spread rule (#78) is not merged yet. Achieved rates run about 8% under target at every step, which points to the client's timer rather than the server.
 - **Open:** the script does not record why the 20 requests failed (5xx or timeout); add that before the next run. Next runs use longer steps above 150 req/s and the rolling update under load.
+
+### Second load test: 180 s steps, failure reasons recorded (#69, PR #72)
+
+- **Change:** the load test now records why each request failed (HTTP status, timeout or the network error code). It checks node memory every 15 s and stops above 95%.
+- **Run:** `BASE=https://contentcollab.app STEPS=150,200,250 STEP_SECONDS=180 node scripts/loadtest.mjs`, 17:08 to 17:17:
+
+| target req/s | achieved req/s | p50 ms | p95 ms | errors % | failed | failure reasons | peak node memory % | API replicas at end of step |
+|---|---|---|---|---|---|---|---|---|
+| 150 | 138.1 | 62 | 102 | 0.12 | 30 | UND_ERR_SOCKET:30 | 93 | 5 |
+| 200 | 184.2 | 63 | 95 | 0.00 | 0 | - | 92 | 5 |
+| 250 | 229.8 | 64 | 107 | 0.00 | 0 | - | 91 | 5 |
+
+- **Scaling:** the HPA went from 2 to 3 replicas at 17:08:58, to 4 at 17:09:13 and to 5 at 17:09:43, all within the first 85 s of the 150 req/s step. At 250 req/s CPU was still 78% of the target at five replicas, the HPA maximum, so five replicas is where this deployment stops scaling.
+- **Failures:** all 30 were `UND_ERR_SOCKET` (the connection was closed from the server side), and all came in the step where the HPA added three pods. There were none at 200 or 250 req/s once five pods were ready. The likely cause is connections closed while the set of API pods changed; the script does not timestamp failures, so this is not confirmed.
+- **Memory:** peak node memory was 93%, under the 95% stop. Three of the five API pods ran on one node, because the spread rule (#78) is not merged yet.
+- **Open:** confirm the cause of the socket closures by timestamping failures against scaling events. The rolling update under load waits for #78 (note on #69).
