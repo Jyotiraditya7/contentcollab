@@ -109,3 +109,19 @@ A list per section. Section 1: the tool claims had no sources, one citation poin
 - Checked against the sources, live on 6 November: the course handout (section requirements, the advanced-feature list, 2,000 words); Adobe's share-and-review page and Hypothesis's site for Section 1; and the NGINX Gateway Fabric 2.8 release blog and session-persistence docs, plus DigitalOcean's load-balancer docs. Those sources confirmed that cookie persistence is now open source but experimental. Sticky sessions stayed, and D12 records where affinity comes from.
 - Not accepted as given: "closed per-seat services" for the competitors. Hypothesis's server is open source and Acrobat reviewers need no account, so Section 1 contrasts vendor-run services with a deployment we run and observe ourselves. The advanced features were set by the team: four committed, each with an owner, and backup and email as stretch goals.
 - Counted: 1,970 words with table pipes and URLs removed (1,990 by `wc`); every reference is cited and every citation is defined.
+
+## Spreading the API replicas across nodes (#69), 6 November 2026
+
+### Prompt
+
+The proposal says the API runs two replicas on two nodes for high availability, but on 4 November they landed on different nodes only by chance. My approach: state the rule in the architecture first, add a CI check that fails on the current manifests, then add the rule to the API Deployment, so the check shows it working. Which Kubernetes mechanism fits a Deployment that the autoscaler takes from two to five replicas on two nodes, and how do I check for it in CI?
+
+### AI Response
+
+Use a topology spread constraint on `kubernetes.io/hostname` with `maxSkew: 1` rather than required pod anti-affinity, which allows only one pod per node and would leave extra replicas and the rolling-update surge pod Pending. Prefer `ScheduleAnyway`, and add `matchLabelKeys: [pod-template-hash]` so each rollout revision spreads on its own. In CI, render both overlays and assert the constraint with yq. The first draft gave two wrong reasons. It said the scheduler's default allows a skew of 3, and that `ScheduleAnyway` was needed for single-node minikube.
+
+### What Your Team Did With It
+
+- Checked against the sources: the Kubernetes topology spread and node assignment pages, live on 6 November. The default spread does not score nodes missing a zone label, and `kubectl get nodes` showed our nodes have none, so the real reason is stronger than the first draft's. The `ScheduleAnyway` reason was corrected to a drained or lost node, because with one node the skew is zero either way.
+- Tested: the check was pushed first and failed in CI (run 42286395192); with the constraint it passed (run 42287294841). An independent review also made the check assert `ScheduleAnyway` and the hash, which it had let slip.
+- Left open in the pull request: `ScheduleAnyway` is a preference, and spreading is not rebalanced after a scale-down.
