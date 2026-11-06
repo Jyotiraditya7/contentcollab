@@ -16,7 +16,7 @@ Live co-editing needs complex concurrency control, so we focus on review. Office
 
 ### 2.1 Objectives
 
-ContentCollab lets people share files and discuss them in place, so files, versions and comments stay together instead of scattering across email and chat.
+ContentCollab lets people share files and discuss them in place, so files, versions and comments stay together, not scattered across email and chat.
 
 Users upload a document and share it as Owner, Editor, Commenter or Viewer, the roles Google Drive uses [11], or by a link with an expiry. Everyone viewing a version sees new comments and pins (notes on a page position) without refreshing.
 
@@ -72,15 +72,14 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 
 ### 2.7 Advanced features
 
-We commit to five from the handout's list, each with an owner:
+We commit to four from the handout's list, each with an owner:
 
 1. **Security** (Eyrika, Nabeegh). bcrypt password hashes, JWT sessions, role checks on every route, expiring share links, HTTPS at the Gateway, credentials in Kubernetes Secrets [6].
-2. **CI/CD** (Nabeegh). GitHub Actions checks every pull request; a merge to `main` builds the images, pushes them to the GitHub Container Registry and rolls them out one pod at a time [8].
+2. **CI/CD** (Nabeegh, running). GitHub Actions checks every pull request; a merge to `main` builds the images, pushes them to the GitHub Container Registry and rolls them out one pod at a time [8].
 3. **Real-time** (Jyotiraditya). Socket.IO with the Redis adapter pushes comments and pins to everyone viewing a version.
-4. **Backup and recovery** (Milton). A nightly pg_dump to Spaces, with a tested restore.
-5. **Auto-scaling and high availability** (Nabeegh). A HorizontalPodAutoscaler runs two to five API replicas across the two nodes; readiness probes and rolling updates drop no requests.
+4. **Auto-scaling and high availability** (Nabeegh). A HorizontalPodAutoscaler, already in the manifests, keeps two to five API replicas on the two nodes; a stepped load test (#69) and a rolling update must drop no requests.
 
-One planned extension, reported as finished only if it is: **integration with external services** (Eyrika), email on share and mention through an external provider.
+Stretch goals, reported finished only if they are: **backup and recovery** (Milton), a nightly pg_dump to Spaces, and **email notifications through an external service** (Eyrika), on share and mention.
 
 ### 2.8 Scope and feasibility
 
@@ -106,7 +105,7 @@ On 10 October we compared ideas including a GitHub clone, an inventory managemen
 
 We evaluated Kubernetes against Docker Swarm and Fly.io and chose DigitalOcean Kubernetes (section 2.5). The Kubernetes blog's notice that ingress-nginx is retired with no further security fixes [1] moved us to the Gateway API. We added a React frontend, since live comments in two browsers cannot be shown with curl.
 
-On 24 October we asked AI for the simplest way to run Socket.IO with a Redis adapter behind a load balancer with several API pods. It recommended WebSocket-only transport to avoid session affinity, with sticky sessions as the alternative. We did not accept this as given: without the HTTP long-polling fallback, clients on networks that block WebSockets cannot connect. We chose sticky sessions with the Redis adapter and kept WebSocket-only as the fallback. On 4 November we confirmed that NGINX Gateway Fabric 2.8 offers cookie session persistence without NGINX Plus, as an experimental Gateway API field [17]. The final proposal differs from our initial thinking in scope (review, not co-editing) and commits to five advanced features (section 2.7).
+On 24 October we asked AI for the simplest way to run Socket.IO with a Redis adapter behind a load balancer with several API pods. It recommended WebSocket-only transport to avoid session affinity, with sticky sessions as the alternative. We did not accept this as given: without the HTTP long-polling fallback, clients on networks that block WebSockets cannot connect. We chose sticky sessions with the Redis adapter and kept WebSocket-only as the fallback. On 4 November we confirmed that NGINX Gateway Fabric 2.8 offers cookie session persistence without NGINX Plus, as an experimental Gateway API field [17]. The final proposal differs from our initial thinking in scope (review, not co-editing) and commits to four advanced features (section 2.7).
 
 ## References
 
