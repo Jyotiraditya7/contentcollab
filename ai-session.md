@@ -93,3 +93,19 @@ The Gateway and HTTPRoute were in `default`: a kustomization's `namespace` field
 
 - Checked against the sources: Kustomize's `namespace` reference, the GitHub runner image list (yq preinstalled) and the NGINX Gateway Fabric v2.8.0 chart values, which is also where product telemetry, failing on every run, was turned off.
 - Tested: CI failed on the check alone, naming `Gateway/contentcollab`, and passed with the fix. Recorded in `docs/BUILD_LOG.md`.
+
+## Proposal freeze: review check and word budget (#9, #31, #33, #34, #66), 6 November 2026
+
+### Prompt
+
+The four sections are written and reviewed, and the file must be one Markdown document of at most 2,000 words, references included. My plan: merge each section's pull request with a merge commit so its author's history stays; check each section against every review comment, the handout and our architecture; fix what is open, naming the owner in each commit; trim my Section 2 to about 870 words without losing a table or handout item; and keep live updates as decided on 24 October. For each section, which review comments are still unanswered, which claims lack a source, and where can words go without losing a rubric item?
+
+### AI Response
+
+A list per section. Section 1: the tool claims had no sources, one citation pointed to a reference that did not exist, and the gap claim was too broad, because Acrobat's shared review and Hypothesis already offer live, anchored PDF comments. Section 3: nobody was named for a demo failure, the testing wording was generic, and the review rule disagreed with the README. Section 4: the ingress-nginx change and the reason behind the AI evaluation had been dropped. The response also suggested where to cut words in each section.
+
+### What Your Team Did With It
+
+- Checked against the sources, live on 6 November: the course handout (section requirements, the advanced-feature list, 2,000 words); Adobe's share-and-review page and Hypothesis's site for Section 1; and the NGINX Gateway Fabric 2.8 release blog and session-persistence docs, plus DigitalOcean's load-balancer docs. Those sources confirmed that cookie persistence is now open source but experimental. Sticky sessions stayed, and D12 records where affinity comes from.
+- Not accepted as given: "closed per-seat services" for the competitors. Hypothesis's server is open source and Acrobat reviewers need no account, so Section 1 contrasts vendor-run services with a deployment we run and observe ourselves. The advanced features were set by the team: four committed, each with an owner, and backup and email as stretch goals.
+- Counted: 1,970 words with table pipes and URLs removed (1,990 by `wc`); every reference is cited and every citation is defined.
