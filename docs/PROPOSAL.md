@@ -95,7 +95,13 @@ We are also aware that unexpected issues may arise. These include a feature or s
 
 ## 4. Initial team reasoning and AI-assisted exploration
 
-Owner: Jyotiraditya Kale. Initial understanding (10 October notes), technical hypotheses, open questions, how the thinking changed, one AI interaction with its evaluation, how the final proposal differs from the initial thinking.
+### 4.1 Initial Team Reasoning
+
+During our October 10 meeting, we compared several project ideas, including a GitHub clone, inventory management system and scientific data repository. We selected the Content Sharing and Collaboration Platform because it was applicable across different industries and allowed us to demonstrate cloud capabilities such as storage, access control and real-time collaboration. Initially, our project was envisioned as a Google Docs-style editor, as reflected in the repository description on October 14. However, during our October 17 meeting, we recognized that live co-editing required a complex conflict-resolution engine, such as a CRDT, making it a substantial standalone product. We therefore narrowed our scope to collaborative document review. PDFs and images would be rendered for review, while Office files would be stored, versioned, and downloadable. The platform would support uploads, link sharing, version history, live comments with @-mentions and pins, search, and metadata export. Access would be managed through four roles: Owner, Editor, Commenter, and Viewer. Our remaining open questions included the cost of hosting, whether Kubernetes could be deployed by November 15 and session affinity support in the Gateway controller.
+
+### 4.2 Exploration and Evaluation
+
+During subsequent architectural discussions, we evaluated Kubernetes against Docker Swarm and Fly.io, ultimately selecting DigitalOcean Kubernetes (DOKS) to maintain a single cloud provider and support orchestration requirements. We chose React for the frontend because demonstrating live comments, document versions, and role-based access through an interface was more effective than relying solely on API requests using curl. We also planned a separate BullMQ worker service using Redis to process bulk imports without blocking API requests. On October 24, we revisited our real-time architecture. AI was used to evaluate the simplest way to run Socket.IO behind a load balancer with multiple API pods and a Redis adapter. AI recommended WebSocket-only transport to avoid session affinity, with sticky sessions as an alternative. We critically evaluated this recommendation and chose sticky sessions with a Redis adapter, retaining WebSocket-only transport as a fallback if Gateway session affinity could not be supported. We also plan to implement security features including JSON Web Token (JWT) authentication and HTTPS, and a GitHub Actions CI/CD pipeline. Autoscaling and high availability remain planned extensions.
 
 ## References
 
