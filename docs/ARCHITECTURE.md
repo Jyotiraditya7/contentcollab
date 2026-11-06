@@ -92,19 +92,20 @@ Live co-editing of document text, or a track-changes mode, is a different produc
 
 New comments, replies, annotation pins and mentions appear for everyone viewing the same document version without a refresh. With replicated API pods, an event received by pod A must reach a user connected to pod B; the Socket.IO Redis adapter does that through Redis pub/sub, which is why Redis is in the stack. See D12 for routing across replicas.
 
-### D5. Advanced features: two promised, four planned
+### D5. Advanced features: four committed, two stretch (revised 6 November)
 
-The proposal commits to two features that are deterministic to build and to demo:
+The proposal commits to four features, each with an owner: security (Eyrika, Nabeegh), CI/CD (Nabeegh, running), real-time (Jyotiraditya) and auto-scaling with high availability (Nabeegh, load test #69). On 6 November real-time and auto-scaling moved from planned to committed: the HPA is already in `k8s/base`, the cluster has run since 4 November, and #69 holds the test. Backup and external email stay stretch goals because they are additive and off the demo path.
 
 1. **Security**: email and password sign-in with bcrypt-hashed passwords, JWT sessions, role checks per route, share links with a token and an expiry, HTTPS from cert-manager and Let's Encrypt at the Gateway on `contentcollab.app` (registered 17 October through the GitHub Student Developer Pack, name.com, first year free), credentials in Kubernetes Secrets (the Docker secrets pattern from lecture 5), never in the image or the repo.
 2. **CI/CD**: GitHub Actions. On every pull request: lint, typecheck, Jest and Supertest against a PostgreSQL service container. On merge to `main`: build the image, push to the GitHub Container Registry, `kubectl set image` and wait for the rollout. The pipeline is what makes the deployment reproducible for the grader.
 
-Planned beyond that, in order, and presented as completed only if they are:
-
 3. **Real-time** (D4).
 4. **Auto-scaling and high availability**: HorizontalPodAutoscaler on CPU, two worker nodes, readiness and liveness probes, a PodDisruptionBudget, a rolling update shown live.
-5. **Backup and recovery**: a Kubernetes CronJob runs `pg_dump` nightly to Spaces; a restore is rehearsed once and documented.
-6. **External services**: email on share and on @-mention through a transactional email API.
+
+Stretch goals, presented as completed only if they are:
+
+5. **Backup and recovery** (Milton): a Kubernetes CronJob runs `pg_dump` nightly to Spaces; a restore is rehearsed once and documented.
+6. **External services** (Eyrika): email on share and on @-mention through a transactional email API.
 
 ### D6. Monitoring
 
