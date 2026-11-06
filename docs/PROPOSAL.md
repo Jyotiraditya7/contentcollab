@@ -38,7 +38,7 @@ A small React web app calls a JSON API through one Gateway, which terminates HTT
 | Socket.IO with sticky sessions and the Redis adapter | Without affinity the long-polling fallback breaks across replicas; the adapter relays events between pods [3] | Needs affinity at the Gateway; WebSocket-only is the fallback |
 | Gateway API, not ingress-nginx | ingress-nginx was retired in March 2026 [1] | New objects to configure |
 | One PostgreSQL instance on a volume; files in Spaces | A volume attaches to one node; a file on one pod's disk is invisible to the others [4], [5], [7] | No database failover |
-| Two small nodes | About US$54 a month shared by four: two US$18 nodes, a US$12 load balancer and US$5 for Spaces [2], [13], [14] | Little headroom; load tests run before the demo |
+| Two small nodes | About US$54 a month shared by four: two US$18 nodes, a US$12 load balancer and US$5 for Spaces [2], [13], [14] | Little headroom |
 
 ### 2.4 Failure handling
 
@@ -59,7 +59,7 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 | Docker and Docker Compose | One container per service; one Compose file runs the stack locally with health checks [6] |
 | PostgreSQL | Relational data linked by foreign keys and changed inside transactions |
 | Persistent storage | A persistent volume backed by a DigitalOcean Volume; the demo deletes the database pod; the data survives |
-| Orchestration | DigitalOcean Kubernetes: Deployments, Services, a PostgreSQL StatefulSet and an API HorizontalPodAutoscaler, each kept at its desired state [8]; tested on minikube first, Swarm the fallback if the cluster is unstable on 14 November [9] |
+| Orchestration | DigitalOcean Kubernetes: Deployments, Services, a PostgreSQL StatefulSet and an API HorizontalPodAutoscaler, each kept at its desired state [8]; minikube first, Swarm as the fallback [9] |
 | Deployment provider | DigitalOcean, the course's IaaS provider [7]; Fly.io's Kubernetes service is a paid beta the course does not recommend [12] |
 | Monitoring | DigitalOcean alerts on CPU, memory and disk; request counts, errors and latency at `/metrics`; Datadog for dashboards and container logs |
 
@@ -72,16 +72,19 @@ API pods hold no state, so any pod can be killed or added without losing data. E
 
 ### 2.7 Advanced features
 
-We commit to two:
+We commit to five from the handout's list, each with an owner:
 
-1. **Security.** bcrypt password hashes, JWT sessions, role checks on every route, expiring share links, HTTPS at the Gateway, credentials in Kubernetes Secrets, never in images or the repository [6].
-2. **CI/CD.** GitHub Actions has checked lint, formatting and types on every pull request since 28 October; tests against a PostgreSQL service container join as features land; a merge to `main` builds the images, pushes them to the GitHub Container Registry and rolls them out one pod at a time [8].
+1. **Security** (Eyrika, Nabeegh). bcrypt password hashes, JWT sessions, role checks on every route, expiring share links, HTTPS at the Gateway, credentials in Kubernetes Secrets [6].
+2. **CI/CD** (Nabeegh). GitHub Actions checks every pull request; a merge to `main` builds the images, pushes them to the GitHub Container Registry and rolls them out one pod at a time [8].
+3. **Real-time** (Jyotiraditya). Socket.IO with the Redis adapter pushes comments and pins to everyone viewing a version.
+4. **Backup and recovery** (Milton). A nightly pg_dump to Spaces, with a tested restore.
+5. **Auto-scaling and high availability** (Nabeegh). A HorizontalPodAutoscaler runs two to five API replicas across the two nodes; readiness probes and rolling updates drop no requests.
 
-One planned extension, reported as finished only if it is: **autoscaling and high availability**, more API replicas under load, readiness probes, and a rolling update with no dropped requests.
+One planned extension, reported as finished only if it is: **integration with external services** (Eyrika), email on share and mention through an external provider.
 
 ### 2.8 Scope and feasibility
 
-Live co-editing is out of scope: it needs a conflict-resolution engine, a separate product. We deploy before we build features, so deployment problems surface early, and each feature ships with tests, so a change that breaks another member's part fails in CI. The cluster has run on DigitalOcean since 4 November; demo-path features freeze on 21 November, leaving 21 to 24 November for load tests and two rehearsals. Each part has a named owner (section 3).
+Live co-editing is out of scope: it needs a conflict-resolution engine, a separate product. We deployed before building features, and each feature ships with tests that run in CI. The cluster has run on DigitalOcean since 4 November; owners and schedule are in section 3.
 
 ## 3. Project plan and team responsibilities
 
@@ -107,31 +110,31 @@ During subsequent architectural discussions, we evaluated Kubernetes against Doc
 
 [1] Kubernetes, "Ingress NGINX retirement: what you need to know," Kubernetes Blog, Nov. 2025. https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/
 
-[2] DigitalOcean, "Kubernetes pricing." https://www.digitalocean.com/pricing/kubernetes
+[2] DigitalOcean, "Kubernetes pricing," checked 6 Nov. 2026. https://www.digitalocean.com/pricing/kubernetes
 
 [3] Socket.IO, "Using multiple nodes," Socket.IO v4 documentation. https://socket.io/docs/v4/using-multiple-nodes
 
-[4] ECE1779 lecture slides, Lecture 3: DigitalOcean Volumes and Snapshots, slides 12–18, Fall 2026.
+[4] ECE1779 Lecture 3, DigitalOcean Volumes and Snapshots, slides 12–18.
 
-[5] ECE1779 lecture slides, Lecture 4: Docker Volumes, slides 90–94, Fall 2026.
+[5] ECE1779 Lecture 4, Docker Volumes, slides 90–94.
 
-[6] ECE1779 lecture slides, Lecture 5: Docker Secrets and Healthchecks, slides 28–51, Fall 2026.
+[6] ECE1779 Lecture 5, Docker Secrets and Healthchecks, slides 28–51.
 
-[7] ECE1779 lecture slides, Lecture 2: IaaS Resources, block and object storage, slides 23–27; Why DigitalOcean and the DigitalOcean ecosystem, slides 42–45, Fall 2026.
+[7] ECE1779 Lecture 2, IaaS resources (block and object storage) and why DigitalOcean, slides 23–27 and 42–45.
 
-[8] ECE1779 lecture slides, Lecture 7: Deployment Strategies, slide 16; Kubernetes core concepts, desired versus observed state and Services routing to ready Pods, slides 29–31, 59, 79 and 105, Fall 2026.
+[8] ECE1779 Lecture 7, Deployment Strategies and Kubernetes core concepts, slides 16, 29–31, 59, 79 and 105.
 
-[9] ECE1779 lecture slides, Lecture 6: From VMs to managed deployment and Swarm rolling updates, slides 38 and 44–45, Fall 2026.
+[9] ECE1779 Lecture 6, managed deployment and Swarm rolling updates, slides 38 and 44–45.
 
-[10] ECE1779 lecture slides, Lecture 1: Project requirements, slide 14, Fall 2026.
+[10] ECE1779 Lecture 1, Project requirements, slide 14.
 
 [11] Google, "Share files from Google Drive," Google Drive Help. https://support.google.com/drive/answer/2494822
 
 [12] ECE1779 course project handout, "Deployment Provider" and "Note on Orchestration on Fly.io," Fall 2026. https://www.eecg.utoronto.ca/~cying/courses/ece1779-cloud/project/handout/
 
-[13] DigitalOcean, "Droplet pricing." https://www.digitalocean.com/pricing/droplets
+[13] DigitalOcean, "Droplet pricing," checked 6 Nov. 2026. https://www.digitalocean.com/pricing/droplets
 
-[14] DigitalOcean, "Spaces object storage pricing." https://www.digitalocean.com/pricing/spaces-object-storage
+[14] DigitalOcean, "Spaces object storage pricing," checked 6 Nov. 2026. https://www.digitalocean.com/pricing/spaces-object-storage
 
 [15] Adobe, "Share PDF files for review," Adobe Acrobat, checked 6 Nov. 2026. https://www.adobe.com/acrobat/features/share-and-review-pdfs.html
 
