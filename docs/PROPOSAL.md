@@ -99,7 +99,7 @@ Risks: a stage slipping, pod or volume loss, deployment problems, and the Digita
 
 ### 4.1 Initial Team Reasoning
 
-On 10 October we compared ideas including a GitHub clone, an inventory management system and a scientific data repository. We chose content sharing and collaboration because it applies across industries and exercises cloud storage, access control and real-time updates. We first envisioned a Google Docs-style editor, (repository description, 14 October). On 17 October we recognized that live co-editing needs a conflict-resolution engine such as a CRDT, a product of its own, so we narrowed the scope to collaborative document review: PDFs and images rendered for review, other files stored and versioned, and four roles. Our open questions were the hosting cost, whether Kubernetes could run by 15 November, and whether the Gateway controller supports session affinity.
+On 10 October we compared ideas including a GitHub clone, an inventory management system and a scientific data repository. We chose content sharing and collaboration because it applies across industries and exercises cloud storage, access control and real-time updates. We first envisioned a Google Docs-style editor on Kubernetes, Swarm as fallback. On 17 October we recognized that live co-editing needs a conflict-resolution engine such as a CRDT, a product of its own, so we narrowed the scope to collaborative document review: PDFs and images rendered for review, other files stored and versioned, and four roles. Our open questions were the hosting cost, whether Kubernetes could run by 15 November, and whether the Gateway controller supports session affinity.
 
 ### 4.2 Exploration and Evaluation
 
