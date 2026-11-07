@@ -31,6 +31,10 @@ The restart test from the proposal: `kubectl -n contentcollab delete pod postgre
 
 Validate without a cluster: `kubectl kustomize k8s/minikube` renders the objects; CI runs kubeconform on them (`ci.yml`, job `k8s`).
 
+## Cluster
+
+`scripts/cluster-up.sh` creates the DOKS cluster and installs what the `doks` overlay expects (Gateway API CRDs, NGINX Gateway Fabric, cert-manager with the Let's Encrypt issuer in `doks/cluster-issuer.yaml`), applies the Secret and the overlay, and prints the load balancer address for the DNS record. Needs `doctl`, `kubectl`, `helm` and `LETSENCRYPT_EMAIL`; it bills from the moment it runs. `scripts/cluster-down.sh` deletes it all after grading.
+
 ## Images
 
 CI (`.github/workflows/deploy.yml`) pushes `ghcr.io/nabeegh-khan/contentcollab-api` and `contentcollab-worker`, tagged `<sha>` and `latest`, on every merge to `main`. The base manifest points at `:latest`. The same workflow has a rollout step that moves both Deployments to the commit SHA, but it has not run yet: no cluster credentials exist in the repository, and #76 replaces the credential check. Until then the cluster is moved to a SHA by hand (`kubectl set image`, as on 4 November), never by editing the manifest.
