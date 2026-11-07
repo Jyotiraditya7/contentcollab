@@ -219,6 +219,6 @@ Their own PostgreSQL holds 5432, so the test container never started; the reacha
 
 ### What Your Team Did With It
 
-- Test first (failing in CI on 5931cef), module after; three cases covered (credentials accepted, refused, nothing listening); 10 tests pass locally and in CI.
-- Six findings from the independent check (misleading message on connection refused, missing public record, the practice ID `NET-2` that is CON-7, an unmentioned red CI run, the shared Compose project, no timeout) were fixed before the merge.
+- Test first (failing in CI on 5931cef), module after; four cases covered (credentials accepted, refused, nothing listening, a server that never answers); 11 tests pass locally and in CI.
+- Six findings from the independent check (misleading message on connection refused, missing public record, the practice ID `NET-2` that is CON-7, an unmentioned red CI run, the shared Compose project, no timeout) were fixed, then its re-check found that the timeout left a connect pending in the pool; fixed with a probe client of its own and a fourth test, and re-checked clean before the merge (3c53210).
 - Replied to the teammate by editing the morning's comment, under the same-day rule.
