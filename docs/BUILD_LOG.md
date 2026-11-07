@@ -104,3 +104,11 @@ Entry format: what was done; decision and the option it beat; evidence; sources 
 - **Failures:** all 30 were `UND_ERR_SOCKET` (the connection was closed from the server side), and all came in the step where the HPA added three pods. There were none at 200 or 250 req/s once five pods were ready. The likely cause is connections closed while the set of API pods changed; the script does not timestamp failures, so this is not confirmed.
 - **Memory:** peak node memory was 93%, under the 95% stop. Three of the five API pods ran on one node, because the spread rule (#78) is not merged yet.
 - **Open:** confirm the cause of the socket closures by timestamping failures against scaling events. The rolling update under load waits for #78 (note on #69).
+
+## 7 November 2026
+
+### Proposal file renamed to the Quercus submission name
+
+- **Done:** `docs/PROPOSAL.md` is now `docs/ECE1779_Team22_Project_Proposal.md`, the exact name of the file each member submits on Quercus. The content did not change: 13,876 bytes, sha256 beginning `d35d288f`, the same blob as commit `d47d567`, 1,999 words by the submission count (URLs, table rules and pipes removed before counting). The six links in the README and in the 17, 24 and 31 October minutes point at the new name. Commit `dcd3786`.
+- **Decision:** rename the file in the repository rather than keep a copy under the Quercus name. One file under one name lets anyone compare the repository and the submission byte for byte; a second copy would drift.
+- **Check:** `git grep PROPOSAL.md` finds no remaining reference; the raw GitHub URL for the new path answers 200 with 13,876 bytes (checked 7 November, 9:50).
