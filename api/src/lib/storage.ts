@@ -1,4 +1,3 @@
-
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -11,12 +10,8 @@ import { Readable } from "node:stream";
 const bucket = process.env.SPACES_BUCKET;
 
 const s3 = new S3Client({
-  ...(process.env.SPACES_ENDPOINT
-    ? { endpoint: process.env.SPACES_ENDPOINT }
-    : {}),
-  ...(process.env.SPACES_REGION
-    ? { region: process.env.SPACES_REGION }
-    : {}),
+  ...(process.env.SPACES_ENDPOINT ? { endpoint: process.env.SPACES_ENDPOINT } : {}),
+  ...(process.env.SPACES_REGION ? { region: process.env.SPACES_REGION } : {}),
   credentials: {
     accessKeyId: process.env.SPACES_KEY ?? "",
     secretAccessKey: process.env.SPACES_SECRET ?? "",
@@ -33,11 +28,7 @@ function getBucket(): string {
 
 // Uploads a stream using multipart upload when necessary.
 // The file is streamed rather than loaded entirely into memory.
-export async function putStream(
-  key: string,
-  stream: Readable,
-  contentType: string,
-): Promise<void> {
+export async function putStream(key: string, stream: Readable, contentType: string): Promise<void> {
   const upload = new Upload({
     client: s3,
     params: {
@@ -68,14 +59,8 @@ export async function getStream(key: string): Promise<Readable> {
 }
 
 // Copies an existing object to a new key.
-export async function copy(
-  fromKey: string,
-  toKey: string,
-): Promise<void> {
-  const encodedSource = fromKey
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/");
+export async function copy(fromKey: string, toKey: string): Promise<void> {
+  const encodedSource = fromKey.split("/").map(encodeURIComponent).join("/");
 
   await s3.send(
     new CopyObjectCommand({

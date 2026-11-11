@@ -1,12 +1,9 @@
-
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { Readable } from "node:stream";
 
 const send = jest.fn<(command: MockCommand) => Promise<unknown>>();
 const done = jest.fn<() => Promise<unknown>>();
-const uploadOptions = jest.fn<
-  (options: Record<string, unknown>) => void
->();
+const uploadOptions = jest.fn<(options: Record<string, unknown>) => void>();
 
 class MockCommand {
   input: Record<string, unknown>;
@@ -79,11 +76,7 @@ describe("Spaces storage", () => {
     done.mockRejectedValue(new Error("Upload failed"));
 
     await expect(
-      putStream(
-        "documents/doc-1/version-1",
-        Readable.from(["contents"]),
-        "text/plain",
-      ),
+      putStream("documents/doc-1/version-1", Readable.from(["contents"]), "text/plain"),
     ).rejects.toThrow("Upload failed");
   });
 
@@ -112,10 +105,7 @@ describe("Spaces storage", () => {
   it("copies an object to a new key", async () => {
     send.mockResolvedValue({});
 
-    await copy(
-      "documents/doc-1/version-1",
-      "documents/doc-1/version-2",
-    );
+    await copy("documents/doc-1/version-1", "documents/doc-1/version-2");
 
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0]?.[0].input).toEqual({
