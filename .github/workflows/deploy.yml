@@ -66,15 +66,36 @@ jobs:
           fi
       - uses: azure/setup-kubectl@v4
         if: steps.cluster.outputs.present == 'true'
-      - name: Roll the Deployments to this commit
+      - name: Run database migration and roll out Deployments
         if: steps.cluster.outputs.present == 'true'
         env:
           KUBECONFIG: ${{ runner.temp }}/kubeconfig
         run: |
-          kubectl apply -k k8s/doks
-          for svc in api worker; do
-            kubectl -n contentcollab set image deployment/$svc $svc=$REGISTRY/contentcollab-$svc:${{ github.sha }}
-          done
-          # Fails the job, and so the run, if the new pods never become ready
+          set -e
+
+          # Apply infrastructure without applying API or worker Deployments
+          kubectl kustomize --load-restrictor LoadRestrictionsNone k8s/doks/infra | kubectl apply -f -
+
+          # Wait for PostgreSQL to become ready
+          kubectl -n contentcollab rollout status statefulset/postgres --timeout=180s
+
+          # Create a migration Job for this commit
+          JOB_NAME="db-migrate-${GITHUB_SHA}"
+          sed "s/__IMAGE_TAG__/${GITHUB_SHA}/g" k8s/doks/migrate-job.yaml | kubectl apply -f -
+
+          # Wait for the migration to finish successfully
+          kubectl -n contentcollab wait \
+            --for=condition=complete \
+            "job/${JOB_NAME}" \
+            --timeout=180s
+
+          # Apply application resources using the images built for this commit
+          kubectl kustomize k8s/doks \
+            | sed \
+                -e "s|ghcr.io/nabeegh-khan/contentcollab-api:latest|ghcr.io/nabeegh-khan/contentcollab-api:${GITHUB_SHA}|g" \
+                -e "s|ghcr.io/nabeegh-khan/contentcollab-worker:latest|ghcr.io/nabeegh-khan/contentcollab-worker:${GITHUB_SHA}|g" \
+            | kubectl apply -f -
+
+          # Wait for both Deployments to become ready
           kubectl -n contentcollab rollout status deployment/api --timeout=180s
           kubectl -n contentcollab rollout status deployment/worker --timeout=180s
