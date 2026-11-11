@@ -1,8 +1,11 @@
-# Runs on every merge to main. Builds the api and worker images, tags them with
-# the commit SHA and pushes them to the GitHub Container Registry; then, once
-# KUBECONFIG is set as a repository secret, rolls both Deployments to that tag
-# and waits for each (proposal section 2.7). The rollout step has not run yet:
-# no cluster credentials exist in the repository; #76 replaces this check.
+# Runs on every merge to main (#70, proposal section 2.7):
+# 1. the same checks as every pull request (ci.yml), so nothing untested ships;
+# 2. builds the api and worker images and pushes them to the GitHub Container
+#    Registry, tagged with the commit SHA (INF-5, INF-9);
+# 3. once the DIGITALOCEAN_ACCESS_TOKEN secret exists, pins both Deployments to
+#    that SHA, applies the overlay once and undoes any Deployment whose rollout
+#    never turns ready (INF-9); then, once the SMOKE_URL variable is
+#    set, checks /health and undoes both if it does not answer ok (L8 p53-55).
 name: deploy
 
 on:
@@ -19,7 +22,11 @@ env:
   REGISTRY: ghcr.io/nabeegh-khan
 
 jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,53 +56,122 @@ jobs:
   rollout:
     needs: build
     runs-on: ubuntu-latest
+    # One rollout at a time. A merge waits for the running one; a newer merge
+    # replaces a rollout still waiting, so usually the newest commit deploys
+    # (GitHub does not guarantee the order in which waiting runs start)
+    concurrency:
+      group: rollout
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
-      # Until stage 3 the secret is empty and the job stops here, green
+      # Until the secret exists the job stops here, green
       - name: Check for a cluster
         id: cluster
         env:
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
+          DO_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          SMOKE_URL: ${{ vars.SMOKE_URL }}
         run: |
-          if [ -z "$KUBECONFIG_B64" ]; then
-            echo "No KUBECONFIG secret: image pushed, no rollout"
+          if [ -z "$DO_TOKEN" ]; then
+            msg="No DIGITALOCEAN_ACCESS_TOKEN secret: images pushed, cluster not changed"
+            echo "::warning title=No rollout::$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
             echo "present=false" >> "$GITHUB_OUTPUT"
           else
-            echo "$KUBECONFIG_B64" | base64 -d > "$RUNNER_TEMP/kubeconfig"
+            [ -n "$SMOKE_URL" ] || echo "::warning title=No smoke check::SMOKE_URL is not set, so a release that starts but does not serve is not rolled back"
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
+      # DigitalOcean's documented pattern: doctl from the official action and a
+      # kubeconfig whose credentials expire after ten minutes, so no long-lived
+      # cluster credential is stored in GitHub (docs.digitalocean.com, "How to
+      # Enable Push-to-Deploy on DigitalOcean Kubernetes Using GitHub Actions")
+      - uses: digitalocean/action-doctl@v2
+        if: steps.cluster.outputs.present == 'true'
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       - uses: azure/setup-kubectl@v4
         if: steps.cluster.outputs.present == 'true'
-      - name: Run database migration and roll out Deployments
+
+      - name: Short-lived cluster credentials
         if: steps.cluster.outputs.present == 'true'
-        env:
-          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 contentcollab
+      - name: Run database migration and roll out Deployments
+
+        if: steps.cluster.outputs.present == 'true'
         run: |
+
           set -e
 
-          # Apply infrastructure without applying API or worker Deployments
+          # Apply infrastructure without deploying API or worker
           kubectl kustomize --load-restrictor LoadRestrictionsNone k8s/doks/infra | kubectl apply -f -
 
-          # Wait for PostgreSQL to become ready
+          # Wait for PostgreSQL
           kubectl -n contentcollab rollout status statefulset/postgres --timeout=180s
 
-          # Create a migration Job for this commit
+          # Run database migration for this commit
           JOB_NAME="db-migrate-${GITHUB_SHA}"
           sed "s/__IMAGE_TAG__/${GITHUB_SHA}/g" k8s/doks/migrate-job.yaml | kubectl apply -f -
 
-          # Wait for the migration to finish successfully
           kubectl -n contentcollab wait \
             --for=condition=complete \
             "job/${JOB_NAME}" \
             --timeout=180s
 
-          # Apply application resources using the images built for this commit
+          # Deploy API and worker with commit-specific images
           kubectl kustomize k8s/doks \
             | sed \
                 -e "s|ghcr.io/nabeegh-khan/contentcollab-api:latest|ghcr.io/nabeegh-khan/contentcollab-api:${GITHUB_SHA}|g" \
                 -e "s|ghcr.io/nabeegh-khan/contentcollab-worker:latest|ghcr.io/nabeegh-khan/contentcollab-worker:${GITHUB_SHA}|g" \
             | kubectl apply -f -
 
-          # Wait for both Deployments to become ready
-          kubectl -n contentcollab rollout status deployment/api --timeout=180s
-          kubectl -n contentcollab rollout status deployment/worker --timeout=180s
+          # Verify deployments and roll back failures
+          failed=0
+          for svc in api worker; do
+            image=$(kubectl -n contentcollab get deployment/$svc -o jsonpath='{.spec.template.spec.containers[0].image}') \
+              || image="(unreadable)"
+
+            case "$image" in
+              *:${GITHUB_SHA}) ;;
+              *)
+                echo "::error::deployment/$svc runs $image, not this commit"
+                failed=1
+                continue
+                ;;
+            esac
+
+            kubectl -n contentcollab rollout status deployment/$svc --timeout=180s \
+              || {
+                kubectl -n contentcollab rollout undo deployment/$svc \
+                  || echo "::error::undo of deployment/$svc failed: the cluster may run mixed versions"
+                failed=1
+              }
+          done
+          exit $failed
+
+      # Smoke test and roll back both Deployments if health check fails
+      - name: Smoke check, roll back on failure
+        if: steps.cluster.outputs.present == 'true' && vars.SMOKE_URL != ''
+        env:
+          SMOKE_URL: ${{ vars.SMOKE_URL }}
+        run: |
+          for _ in $(seq 1 12); do
+            body=$(curl -sS --max-time 5 "$SMOKE_URL/health" || true)
+            if echo "$body" | grep -q '"status":"ok"'; then
+              echo "smoke ok: $body"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "::error::Smoke check failed (last body: $body): rolling back"
+
+          doctl kubernetes cluster kubeconfig save --expiry-seconds 600 contentcollab \
+            || echo "::warning::could not refresh credentials; trying rollback with current credentials"
+
+          for svc in api worker; do
+            {
+              kubectl -n contentcollab rollout undo deployment/$svc \
+                && kubectl -n contentcollab rollout status deployment/$svc --timeout=180s
+            } || echo "::error::rollback of deployment/$svc failed: the cluster may run mixed versions"
+          done
+
+          exit 1
