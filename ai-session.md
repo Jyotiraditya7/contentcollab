@@ -503,3 +503,19 @@ Drafted each review with file and line findings and checked each draft separatel
 - Found after approving the schema that it still lacks the revert column agreed on 12 November; posted a correction on the pull request asking for a second migration rather than withdrawing the approval, so the schema and auth are not held up.
 - Kept the migration Job out of the teammates' pull requests and in our own deploy scope, built on the open image-pinning pull request because both change the same step.
 - Committed the tests before each change (12 of 26 failing, then 1 of 27, twice) and applied the review's findings: the failure branch also prints the Job's status and its pod's events, since the deadline terminates the pod and a pod that never started has no log.
+
+## Re-reviews before the checkpoint call and the CI signing-key fix (#127), 14 November 2026
+
+### Prompt
+
+Before the 3:30pm checkpoint: unblock CI for the auth and shares pull requests, re-review both against our criteria after their author's fixes, answer the web skeleton's open questions, and update the demo page and meeting agenda from the current state.
+
+### AI Response
+
+Traced the red `docker` job to CI starting the API image without a signing key, proposed a test-only value on both `docker run` lines with a check that fails first, drafted the re-reviews and the web comment, and drafted the agenda and demo updates.
+
+### What Your Team Did With It
+
+- Kept the fix in CI, our own scope, and left the auth code alone; the check was committed before the fix and failed first.
+- An independent check of the review drafts corrected one wrong claim (a merge conflict on the web branch that Git does not produce) and changed the shares review from an approval to a comment, since the branch still carries the auth branch's broken Compose line until auth merges.
+- Found in re-review that the auth branch's new Compose line stops `docker compose up` and that four docs files on it are older copies; both are asked of the author, not changed by us. Deferred items went to #129 and #130.
