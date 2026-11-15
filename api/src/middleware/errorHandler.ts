@@ -6,5 +6,11 @@ import type { NextFunction, Request, Response } from "express";
 export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction): void {
   void next;
   console.error(`${req.method} ${req.originalUrl}`, err);
+
+  if (err instanceof Error && "statusCode" in err && err.statusCode === 404) {
+    res.status(404).json({ error: "Not Found" });
+    return;
+  }
+
   res.status(500).json({ error: "Internal Server Error" });
 }

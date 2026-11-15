@@ -7,6 +7,7 @@ import { connectRedis } from "./lib/redis.js";
 import { pool } from "./lib/db.js";
 import healthRoutes from "./routes/health.js";
 import metricsRoutes from "./routes/metrics.js";
+import { validateStorageConfig } from "./lib/storage.js";
 
 const app = express();
 
@@ -24,6 +25,7 @@ const isEntry = process.argv[1] !== undefined && fileURLToPath(import.meta.url) 
 
 if (isEntry) {
   const port = Number(process.env.PORT ?? 3000);
+  validateStorageConfig();
   const server = app.listen(port, () => console.log(`api listening on ${port}`));
 
   // Listen first, then connect to Redis in the background (#65). If Redis is
