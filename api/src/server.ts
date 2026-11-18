@@ -3,10 +3,13 @@ import { fileURLToPath } from "node:url";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { requestLogger } from "./middleware/logger.js";
 import { requestMetrics } from "./middleware/metrics.js";
-import { connectRedis } from "./lib/redis.js";
+import { connectRedis, redis } from "./lib/redis.js";
 import { pool } from "./lib/db.js";
 import healthRoutes from "./routes/health.js";
 import metricsRoutes from "./routes/metrics.js";
+import { statusRoutes } from "./routes/status.js";
+import { latencyFrom, queueDepth } from "./lib/status.js";
+import { httpDuration } from "./lib/metrics.js";
 import authRoutes from "./routes/auth.js";
 import { jwtSecret } from "./middleware/requireAuth.js";
 
@@ -17,6 +20,16 @@ app.use(requestLogger);
 app.use(requestMetrics);
 app.use("/health", healthRoutes);
 app.use("/metrics", metricsRoutes);
+// Status page numbers (#30, D23); replicas need read access to the Deployment, not granted yet
+app.use(
+  "/api/v1/status",
+  statusRoutes({
+    // Fail fast while Redis is down instead of queueing commands until the time limit
+    queue: () => (redis.isReady ? queueDepth(redis) : Promise.reject(new Error("redis not ready"))),
+    latency: () => latencyFrom(httpDuration),
+    replicas: async () => null,
+  }),
+);
 app.use("/api/v1/auth", authRoutes);
 app.use((req, res) => res.status(404).json({ error: "Not Found", code: "NOT_FOUND" }));
 app.use(errorHandler);
