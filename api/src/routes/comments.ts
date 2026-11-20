@@ -299,6 +299,46 @@ router.get(
       }
     }
 
+    const limitParam = req.query.limit;
+    let limit = 20;
+
+    if (limitParam !== undefined) {
+      if (
+        typeof limitParam !== "string" ||
+        !/^\d+$/.test(limitParam) ||
+        Number(limitParam) < 1 ||
+        Number(limitParam) > 100
+      ) {
+        throw new HttpError(400, "VALIDATION", "Invalid pagination limit");
+      }
+
+      limit = Number(limitParam);
+    }
+
+    const cursorParam = req.query.cursor;
+    let cursor: string | null = null;
+
+    if (cursorParam !== undefined) {
+      if (typeof cursorParam !== "string") {
+        throw new HttpError(400, "VALIDATION", "Invalid pagination cursor");
+      }
+
+      try {
+        const decoded = Buffer.from(cursorParam, "base64url").toString("utf8");
+
+        if (
+          !/^[1-9]\d*$/.test(decoded) ||
+          Buffer.from(decoded).toString("base64url") !== cursorParam
+        ) {
+          throw new Error("Invalid cursor");
+        }
+
+        cursor = decoded;
+      } catch {
+        throw new HttpError(400, "VALIDATION", "Invalid pagination cursor");
+      }
+    }
+
     const versionResult = await pool.query(
       `SELECT id
        FROM document_versions
@@ -331,17 +371,35 @@ router.get(
         c.anchor,
         root.resolved AS resolved,
         c.created_at AS "createdAt",
-        c.updated_at AS "updatedAt"
+        c.updated_at AS "updatedAt",
+        c.sequence_number::text AS "sequenceNumber"
       FROM comments c
       JOIN comment_roots roots ON roots.id = c.id
       JOIN comments root ON root.id = roots.root_id
       WHERE c.version_id = $1
         AND ($2::boolean IS NULL OR root.resolved = $2)
-      ORDER BY c.sequence_number ASC`,
-      [versionId, resolved ?? null],
+        AND ($3::bigint IS NULL OR c.sequence_number > $3::bigint)
+      ORDER BY c.sequence_number ASC
+      LIMIT $4`,
+      [versionId, resolved ?? null, cursor, limit + 1],
     );
 
-    res.status(200).json(result.rows);
+    const hasMore = result.rows.length > limit;
+    const items = result.rows.slice(0, limit);
+    const lastItem = items[items.length - 1];
+
+    const nextCursor =
+      hasMore && lastItem ? Buffer.from(lastItem.sequenceNumber).toString("base64url") : null;
+
+    const publicItems = items.map(({ sequenceNumber, ...item }) => {
+      void sequenceNumber;
+      return item;
+    });
+
+    res.status(200).json({
+      items: publicItems,
+      nextCursor,
+    });
   },
 );
 

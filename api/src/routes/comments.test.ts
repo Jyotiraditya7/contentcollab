@@ -258,10 +258,64 @@ describe("comments API", () => {
       .set("Authorization", `Bearer ${token(viewerId)}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.map((comment: { id: string }) => comment.id)).toEqual([
+    expect(res.body.items.map((comment: { id: string }) => comment.id)).toEqual([
       first.body.id,
       second.body.id,
     ]);
+  });
+
+  it("paginates comments using limit and cursor", async () => {
+    const ownerId = await createUser("Owner");
+    const documentId = await createDocument(ownerId);
+    const versionId = await createVersion(documentId, ownerId);
+
+    const createdComments = [];
+
+    for (const body of ["First", "Second", "Third"]) {
+      const comment = await request(app)
+        .post(`${base}/${documentId}/versions/${versionId}/comments`)
+        .set("Authorization", `Bearer ${token(ownerId)}`)
+        .send({ body });
+
+      expect(comment.status).toBe(201);
+      createdComments.push(comment.body);
+    }
+
+    const firstPage = await request(app)
+      .get(`${base}/${documentId}/versions/${versionId}/comments`)
+      .query({ limit: 2 })
+      .set("Authorization", `Bearer ${token(ownerId)}`);
+
+    expect(firstPage.status).toBe(200);
+    expect(firstPage.body.items.map((comment: { id: string }) => comment.id)).toEqual([
+      createdComments[0].id,
+      createdComments[1].id,
+    ]);
+    expect(firstPage.body.nextCursor).toEqual(expect.any(String));
+
+    const secondPage = await request(app)
+      .get(`${base}/${documentId}/versions/${versionId}/comments`)
+      .query({ limit: 2, cursor: firstPage.body.nextCursor })
+      .set("Authorization", `Bearer ${token(ownerId)}`);
+
+    expect(secondPage.status).toBe(200);
+    expect(secondPage.body.items.map((comment: { id: string }) => comment.id)).toEqual([
+      createdComments[2].id,
+    ]);
+    expect(secondPage.body.nextCursor).toBeNull();
+  });
+
+  it("returns 400 for an invalid pagination limit", async () => {
+    const ownerId = await createUser("Owner");
+    const documentId = await createDocument(ownerId);
+    const versionId = await createVersion(documentId, ownerId);
+
+    const res = await request(app)
+      .get(`${base}/${documentId}/versions/${versionId}/comments?limit=101`)
+      .set("Authorization", `Bearer ${token(ownerId)}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("VALIDATION");
   });
 
   it("filters comments by resolved status", async () => {
@@ -299,15 +353,65 @@ describe("comments API", () => {
 
     expect(openResults.status).toBe(200);
     expect(resolvedResults.status).toBe(200);
-    expect(openResults.body.map((comment: { id: string }) => comment.id)).toContain(
+    expect(openResults.body.items.map((comment: { id: string }) => comment.id)).toContain(
       openComment.body.id,
     );
-    expect(openResults.body.map((comment: { id: string }) => comment.id)).not.toContain(
+    expect(openResults.body.items.map((comment: { id: string }) => comment.id)).not.toContain(
       resolvedComment.body.id,
     );
-    expect(resolvedResults.body.map((comment: { id: string }) => comment.id)).toContain(
+    expect(resolvedResults.body.items.map((comment: { id: string }) => comment.id)).toContain(
       resolvedComment.body.id,
     );
+  });
+
+  it("returns 404 when the caller has no document share", async () => {
+    const ownerId = await createUser("Owner");
+    const otherUserId = await createUser("Other User");
+    const documentId = await createDocument(ownerId);
+    const versionId = await createVersion(documentId, ownerId);
+
+    const res = await request(app)
+      .get(`${base}/${documentId}/versions/${versionId}/comments`)
+      .set("Authorization", `Bearer ${token(otherUserId)}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 401 when the caller has no token", async () => {
+    const ownerId = await createUser("Owner");
+    const documentId = await createDocument(ownerId);
+    const versionId = await createVersion(documentId, ownerId);
+
+    const res = await request(app).get(`${base}/${documentId}/versions/${versionId}/comments`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when a comment belongs to a different document than the path", async () => {
+    const firstOwnerId = await createUser("First Owner");
+    const secondOwnerId = await createUser("Second Owner");
+    const commenterId = await createUser("Commenter");
+
+    const firstDocumentId = await createDocument(firstOwnerId);
+    const secondDocumentId = await createDocument(secondOwnerId);
+
+    await addShare(firstDocumentId, commenterId, "commenter");
+
+    const secondVersionId = await createVersion(secondDocumentId, secondOwnerId);
+
+    const comment = await request(app)
+      .post(`${base}/${secondDocumentId}/versions/${secondVersionId}/comments`)
+      .set("Authorization", `Bearer ${token(secondOwnerId)}`)
+      .send({ body: "Comment on another document" });
+
+    expect(comment.status).toBe(201);
+
+    const res = await request(app)
+      .patch(`${base}/${firstDocumentId}/comments/${comment.body.id}`)
+      .set("Authorization", `Bearer ${token(commenterId)}`)
+      .send({ body: "Attempted edit" });
+
+    expect(res.status).toBe(404);
   });
 
   it("returns 400 for an invalid resolved filter", async () => {
@@ -402,7 +506,7 @@ describe("comments API", () => {
 
     expect(comments.status).toBe(200);
 
-    const updatedReply = comments.body.find(
+    const updatedReply = comments.body.items.find(
       (comment: { id: string; body: string }) => comment.id === reply.body.id,
     );
 
@@ -532,7 +636,7 @@ describe("comments API", () => {
       .set("Authorization", `Bearer ${token(ownerId)}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.map((comment: { id: string }) => comment.id)).toEqual([
+    expect(res.body.items.map((comment: { id: string }) => comment.id)).toEqual([
       root.body.id,
       reply.body.id,
       nestedReply.body.id,
