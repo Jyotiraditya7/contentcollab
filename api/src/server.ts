@@ -9,6 +9,7 @@ import { HTTP_NOT_FOUND } from "./lib/httpStatus.js";
 import { logListening, logRedisGaveUp } from "./lib/startup.js";
 import healthRoutes from "./routes/health.js";
 import metricsRoutes from "./routes/metrics.js";
+import { validateStorageConfig } from "./lib/storage.js";
 import { statusRoutes } from "./routes/status.js";
 import { latencyFrom, queueDepth } from "./lib/status.js";
 import { cachedFor, inClusterGet, readyReplicas } from "./lib/replicas.js";
@@ -48,13 +49,13 @@ if (compareEnabled(process.env)) app.use("/api/v1/documents", compareRoutes);
 app.use((req, res) => res.status(HTTP_NOT_FOUND).json(errorBody(HTTP_NOT_FOUND)));
 app.use(errorHandler);
 
-// Start listening only when this file is the entry point. Tests import `app`
-// and attach Supertest to it instead, so no port is taken.
+// Start listening only when this file is the entry point. Tests import `app` and attach Supertest to it instead, so no port is taken.
 const isEntry = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isEntry) {
   jwtSecret();
   const port = Number(process.env.PORT ?? 3000);
+  validateStorageConfig();
 
   const server = createServer(app);
   const socketServer = createSocketServer(server);

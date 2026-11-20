@@ -6,10 +6,11 @@ import { pool } from "./db.js";
 import { connectRedis, logStateChanges, redis } from "./redis.js";
 import { jwtSecret } from "../middleware/requireAuth.js";
 import { setRealtimeServer } from "./realtime.js";
+import { errorFields, log } from "./log.js";
 
 interface JoinResponse {
   ok: boolean;
-  code?: "NOT_FOUND";
+  code?: "NOT_FOUND" | "INTERNAL_ERROR";
 }
 
 export function createSocketServer(httpServer: HttpServer) {
@@ -99,8 +100,13 @@ export function createSocketServer(httpServer: HttpServer) {
         await socket.join(`version:${versionId}`);
         await socket.join(`document:${documentId}`);
         acknowledge({ ok: true });
-      } catch {
-        acknowledge({ ok: false, code: "NOT_FOUND" });
+      } catch (err) {
+        log("error", "socket: join failed", {
+          component: "socket",
+          user_id: userId,
+          error: errorFields(err),
+        });
+        acknowledge({ ok: false, code: "INTERNAL_ERROR" });
       }
     });
   });

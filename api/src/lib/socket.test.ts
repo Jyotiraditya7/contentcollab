@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import { createServer, type Server as HttpServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import jwt from "jsonwebtoken";
@@ -177,6 +177,62 @@ describe("Socket.IO authentication and room authorization", () => {
 
     expect(response).toEqual({ ok: false, code: "NOT_FOUND" });
   });
+  it("rejects a join with a malformed version ID", async () => {
+    const client = connectClient(createToken(authorizedUserId));
+    await waitForConnection(client);
+
+    const response = await new Promise<{ ok: boolean; code?: string }>((resolve) => {
+      client.emit("join", { versionId: "not-a-valid-uuid" }, resolve);
+    });
+
+    expect(response).toEqual({ ok: false, code: "NOT_FOUND" });
+  });
+
+  it("refuses a version room join when the user's share has expired", async () => {
+    await pool.query(
+      `INSERT INTO shares (document_id, user_id, role, expires_at)
+      SELECT document_id, $1, $2, NOW() - INTERVAL '1 hour'
+      FROM document_versions
+      WHERE id = $3`,
+      [unauthorizedUserId, "editor", versionId],
+    );
+
+    try {
+      const client = connectClient(createToken(unauthorizedUserId));
+      await waitForConnection(client);
+
+      const response = await new Promise<{ ok: boolean; code?: string }>((resolve) => {
+        client.emit("join", { versionId }, resolve);
+      });
+
+      expect(response).toEqual({ ok: false, code: "NOT_FOUND" });
+    } finally {
+      await pool.query(
+        `DELETE FROM shares WHERE user_id = $1 AND document_id = (
+          SELECT document_id FROM document_versions WHERE id = $2
+        )`,
+        [unauthorizedUserId, versionId],
+      );
+    }
+  });
+  it("returns INTERNAL_ERROR when the database query fails during a join", async () => {
+    const client = connectClient(createToken(authorizedUserId));
+    await waitForConnection(client);
+
+    const querySpy = jest.spyOn(pool, "query").mockImplementationOnce(async () => {
+      throw new Error("Simulated database failure");
+    });
+
+    try {
+      const response = await new Promise<{ ok: boolean; code?: string }>((resolve) => {
+        client.emit("join", { versionId }, resolve);
+      });
+
+      expect(response).toEqual({ ok: false, code: "INTERNAL_ERROR" });
+    } finally {
+      querySpy.mockRestore();
+    }
+  });
 
   it("delivers comment:created to a client authorized for the version", async () => {
     const client = connectClient(createToken(authorizedUserId));
@@ -201,5 +257,42 @@ describe("Socket.IO authentication and room authorization", () => {
     emitToVersion(versionId, "comment:created", payload);
 
     await expect(received).resolves.toEqual(payload);
+  });
+  it("delivers events across two Socket.IO server instances using the Redis adapter", async () => {
+    const secondHttpServer = createServer();
+    const secondSocketServer = createSocketServer(secondHttpServer);
+
+    try {
+      await secondSocketServer.connectRedisClients();
+
+      await new Promise<void>((resolve) => {
+        secondHttpServer.listen(0, "127.0.0.1", resolve);
+      });
+
+      const client = connectClient(createToken(authorizedUserId));
+      await waitForConnection(client);
+
+      const joinResponse = await new Promise<{ ok: boolean }>((resolve) => {
+        client.emit("join", { versionId }, resolve);
+      });
+
+      expect(joinResponse).toEqual({ ok: true });
+
+      const payload = {
+        id: crypto.randomUUID(),
+        versionId,
+        body: "Event emitted by the second server",
+      };
+
+      const received = new Promise<typeof payload>((resolve) => {
+        client.once("comment:created", resolve);
+      });
+
+      secondSocketServer.io.to(`version:${versionId}`).emit("comment:created", payload);
+
+      await expect(received).resolves.toEqual(payload);
+    } finally {
+      await secondSocketServer.close();
+    }
   });
 });
