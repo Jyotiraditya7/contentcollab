@@ -367,3 +367,11 @@ Each of these pull requests was past its three-day review window with no review,
 - **Evidence.** Tests committed before the code: web 30 tests, deploy and manifest tests 67 (24 of 61 red before the Kubernetes change). Independent review before the pull request; its two serious findings were fixed or turned into a step: the HTTP-listener route (fixed, test first) and the image package (below).
 - **Step before merging.** `contentcollab-web` does not exist on ghcr.io, a package first published under a personal account is private, and the cluster pulls without credentials. The package is pushed once by hand, set public, and given this repository's Write access under "Manage Actions access" (GitHub Docs, "Configuring a package's access control and visibility", checked 19 November 2026).
 - **Limits.** The web pod runs the official nginx image as is (no `runAsNonRoot`); the API route still answers on plain HTTP; both are follow-ups.
+
+## 20 November 2026
+
+### Second node, observability and the NGINX upgrade (ARCHITECTURE D19)
+
+- **Node pool.** The `default` pool went from one node to two (autoscale min 2, max 3) with `doctl kubernetes cluster node-pool update`; the new node was Ready 32 s after it was created. The app pods stay on the first node, the observability pods on the second.
+- **Observability.** `scripts/observability-up.sh` installed Prometheus, kube-state-metrics and Grafana in the `observability` namespace; three pods Running. The ContentCollab dashboard shows live data, and the request-rate panel is empty at idle by design (it filters out `/metrics` and `/health`).
+- **NGINX Gateway Fabric 2.8.0 to 2.9.0 (PR #142).** Two HTTP/2 CVEs (CVE-2026-123007, CVE-2026-123633) are fixed in nginx 1.31.9 (NGF 2.9.0 ships it; 2.8.1 still ships 1.31.7). Order: a server-side dry run of the Gateway API 1.7.0 CRDs, then the CRDs, then NGF's own CRDs, then `helm upgrade ngf --version 2.9.0`. The opt-out annotation from 11 November still let DOKS accept the CRD update. Evidence: `nginx -v` inside `contentcollab-nginx` printed nginx/1.31.9; the Gateway shows PROGRAMMED True; `https://contentcollab.app/health` returned ok for postgres and redis. The single gateway pod restarted once, about a minute without an answer. `cluster-up.sh` now pins v2.9.0.

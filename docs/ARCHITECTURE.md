@@ -63,8 +63,8 @@ Versions, checked 11 November 2026 against each project's own pages:
 | Component | Pinned | Why this one |
 |---|---|---|
 | Kubernetes, new clusters | newest `1.36.x` DOKS offers | cert-manager 1.21 supports Kubernetes 1.33 to 1.36; DOKS offers 1.34 to 1.37, and `doctl kubernetes cluster create` defaults to `latest` (doctl 2.1.0 help), so an unpinned create lands outside that range |
-| NGINX Gateway Fabric | 2.8.1 (3 November) | latest release; its Helm chart needs Kubernetes 1.32 or later |
-| Gateway API CRDs | 1.6.3, standard channel | the bundle NGINX Gateway Fabric 2.8.1 ships, installed from its own `config/crd` path |
+| NGINX Gateway Fabric | 2.9.0 (18 November) | ships nginx 1.31.9, which fixes the HTTP/2 CVEs CVE-2026-123007 and CVE-2026-123633; 2.8.0 and 2.8.1 ship nginx 1.31.7. Live on the cluster since 20 November |
+| Gateway API CRDs | 1.7.0, standard channel | the bundle NGINX Gateway Fabric 2.9.0 ships, installed from its own `config/crd` path (`cluster-up.sh` reads the same ref) |
 | cert-manager | v1.21.3 (23 October) | 1.19, installed on 4 November, reached end of life on 8 July 2026; 1.21 and 1.20 are the supported releases |
 
 cert-manager is upgraded one minor version at a time, as its upgrade guide recommends, so the running cluster moves 1.19.2, then 1.20.5, then 1.21.3. Gateway API support is switched on with `enableGatewayAPI` up to 1.20 and `gatewayAPI.enabled` from 1.21, where the old field is deprecated but still read. The running cluster was created on 4 November at 1.37.0, one minor version above cert-manager 1.21's supported range. It is kept: rebuilding it at 1.36 means a new load balancer address, a DNS change and a new certificate, and that is a decision for the cluster owner, not the script.
