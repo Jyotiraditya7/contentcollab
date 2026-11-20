@@ -15,6 +15,7 @@ import { latencyFrom, queueDepth } from "./lib/status.js";
 import { cachedFor, inClusterGet, readyReplicas } from "./lib/replicas.js";
 import { httpDuration } from "./lib/metrics.js";
 import authRoutes from "./routes/auth.js";
+import commentsRoutes from "./routes/comments.js";
 import { jwtSecret } from "./middleware/requireAuth.js";
 import compareRoutes, { compareEnabled } from "./routes/compare.js";
 import { createServer } from "node:http";
@@ -46,6 +47,9 @@ app.use(
 app.use("/api/v1/auth", authRoutes);
 // Version comparison (#23, D21): off unless FEATURE_VERSION_COMPARE=1
 if (compareEnabled(process.env)) app.use("/api/v1/documents", compareRoutes);
+
+app.use("/api/v1", commentsRoutes);
+
 app.use((req, res) => res.status(HTTP_NOT_FOUND).json(errorBody(HTTP_NOT_FOUND)));
 app.use(errorHandler);
 
