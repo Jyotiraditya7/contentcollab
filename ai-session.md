@@ -632,7 +632,7 @@ Checked which routes are on main (auth and status only), then proposed one `requ
 
 ### What Your Team Did With It
 
-- Wrote the decision (ARCHITECTURE D26) before the code, and committed each set of tests before the code that makes it pass: 24 of 61 deploy and manifest tests failed before the Kubernetes change.
+- Wrote the decision (ARCHITECTURE D27) before the code, and committed each set of tests before the code that makes it pass: 24 of 61 deploy and manifest tests failed before the Kubernetes change.
 - Kept #93 and #91 open and untouched; the skeleton's own files changed by two lines in `main.jsx` and new scripts in `package.json`.
 - Checked routing precedence in the Gateway API v1.6 reference, the nginx non-root note on Docker Hub, package visibility in GitHub Docs and package release dates on npm, instead of from memory.
 - An independent review found that the first deploy would push a private image the cluster cannot pull, and that the sign-in page was also served over plain HTTP. The route now uses the HTTPS listener only, and the package is created and made public by hand before merging. With three Deployments, each rollout wait is 120 s so the deploy stays inside its ten-minute cluster login.

@@ -360,7 +360,7 @@ Each of these pull requests was past its three-day review window with no review,
 
 ## 19 November 2026
 
-### A minimal browser client for the 24 November demo (ARCHITECTURE D26, PR #140)
+### A minimal browser client for the 24 November demo (ARCHITECTURE D27, PR #140)
 
 - **Gate.** On main on 19 November, `api/src/routes` holds auth, compare, health, metrics and status; no documents, versions or comments pull request is approved (#116 changes requested; #135, #136 awaiting review). So sign in and register are live. Documents (list, upload) and the document view (download, versions, comments, live comments) are disabled controls marked "after 24 Nov".
 - **Built.** In `web/`: `request()` per `docs/API.md` (base `/api/v1`, Bearer token, errors keep their status and `{ error, code, details }`), the auth pages, a stored token checked with `/auth/me`. In `k8s/`: a `web` Deployment and Service (two replicas, named port, readiness on `/`), an HTTPRoute for `/` on the HTTPS listener only. In CI: a `web-test` job; the deploy builds, pins, watches and undoes the web image with the api and worker, with 120 s rollout waits (150 + 3 x 120 = 510 s inside the 600 s login; rolling two Deployments took 30 s on 18 November).
