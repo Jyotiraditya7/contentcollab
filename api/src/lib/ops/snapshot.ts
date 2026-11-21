@@ -23,7 +23,7 @@ export interface OpsSources {
   nodes: Source<NodeCard[]>;
   traffic: Source<TrafficCard>;
   claim: Source<ClaimCard>;
-  counts: Source<{ documents: number; versions: number }>;
+  counts: Source<{ documents: number; versions: number; comments: number }>;
   events: Source<TimelineEvent[]>;
   logs: Source<{ lines: LogLine[]; hidden: number }>;
   /** When the next drill may start (ISO time), or null; left out where there are no drills. */
@@ -100,6 +100,7 @@ export async function buildSnapshot(
       claim: valueOr(claim),
       documents: counted?.documents ?? null,
       versions: counted?.versions ?? null,
+      comments: counted?.comments ?? null,
     },
     events: valueOr(events) ?? [],
     logs: valueOr(logs) ?? { lines: [], hidden: 0 },

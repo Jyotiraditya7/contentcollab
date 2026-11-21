@@ -20,7 +20,7 @@ export interface LiveDeps {
   hostname: string;
   kubeGet: KubeGet | null;
   query: Query | null;
-  sql: () => Promise<{ documents: number; versions: number }>;
+  sql: () => Promise<{ documents: number; versions: number; comments: number }>;
   /** The latest rows of ops_drills, for the timeline (D31). */
   drillRows?: (() => Promise<DrillRow[]>) | undefined;
   /** When the next drill may start, from the Redis lock. */

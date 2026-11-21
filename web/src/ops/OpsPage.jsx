@@ -11,6 +11,7 @@ import {
   StorageCard,
   TrafficCard,
 } from "./cards.jsx";
+import DrillCard from "./DrillCard.jsx";
 import { agoText } from "./format.js";
 
 const REFRESH_MS = 5000;
@@ -135,6 +136,7 @@ export default function OpsPage({ token }) {
           <NodesCard data={data} />
           <StorageCard data={data} />
           <TrafficCard data={data} />
+          <DrillCard token={token} nextAllowedAt={data.drills?.nextAllowedAt ?? null} />
           <EventsCard data={data} />
           <LogsCard data={data} />
         </div>

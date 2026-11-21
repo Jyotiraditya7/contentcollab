@@ -531,3 +531,25 @@ describe("OpsPage failures and safety", () => {
     ).toBeTruthy();
   });
 });
+
+describe("OpsPage drill and comment count", () => {
+  it("shows the restart card with its buttons, and the comment count in storage", async () => {
+    const snap = snapshot();
+    snap.storage.comments = 7;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respond(200, snap)));
+    render(<OpsPage token="t" />);
+    await flush();
+
+    expect(screen.getByRole("button", { name: "Restart an API pod" })).toBeTruthy();
+    expect(
+      within(screen.getByRole("region", { name: "Storage" })).getByText("Comments stored: 7"),
+    ).toBeTruthy();
+  });
+
+  it("says the comment count is not available when the API does not give one", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respond(200, snapshot())));
+    render(<OpsPage token="t" />);
+    await flush();
+    expect(screen.getByText("Comments stored: not available")).toBeTruthy();
+  });
+});
