@@ -668,3 +668,19 @@ Drafted the share form with the API's refusals in plain words and its tests, the
 - Read the shares route and the role middleware to see what a non-owner and a non-member actually receive (403 and 404), and the socket server for the join answer and event names.
 - Independent reviews found that a 401 showed the server's raw text on the form, that a socket reconnecting could move to another pod and give a PASS with no crossing, and that the pod attribution (a before and after connection count) could be fooled; these got tests first, a recount after the comment, and the counts written to the evidence.
 - Left for later: link shares and role changes in the form, and running the script on the cluster, which needs a document with a version (#116).
+
+## An operations panel: the design and its read-only backend, 21 November 2026
+
+### Prompt
+
+The demo has no terminal: the audience should see the app and then a live operations panel showing what `kubectl` would show (containers, autoscaler, node load, traffic, storage, events, logs) with an operator-only restart drill. Design it first, against the current Kubernetes, Prometheus and RBAC documentation and the cluster itself, then build the read-only backend, tests first.
+
+### AI Response
+
+Drafted decision D31 (a read-only `GET /api/v1/ops` behind sign-in and an admin check, an Eviction-based drill, Redis rate limit, an audit table, the page and its evidence file) and then the first of three pull requests: small functions that turn Kubernetes replies into cards, the Prometheus reads, the admin middleware, the route with a 5 s cache, and the RBAC manifests with render tests.
+
+### What Your Team Did With It
+
+- Checked every path, field and PromQL expression against the live cluster read-only (events carry their time only in a deprecated field on this cluster; metrics.k8s.io is served as v1beta1) instead of relying on the documentation alone.
+- An independent review found a CPU quantity suffix the code could not read, a log line that would have shown an address, and a failed pod log read that dropped the whole card; each got a failing test first.
+- Left for later: the drill, the page, setting the admin ids from the setup script, and measuring the panel's cost on the API pods.
