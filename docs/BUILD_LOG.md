@@ -423,3 +423,8 @@ Each of these pull requests was past its three-day review window with no review,
 - **Comment times.** Each comment shows its own created time to the minute ("4:55 PM, 21 Nov") and the relative time ("2 min ago"), refreshed every 30 seconds. The API already returns `createdAt` per comment; the identical times seen earlier were three comments a script created in the same second. In the screenshot three comments posted 65 seconds apart show 4:55, 4:56 and 4:57.
 - **Tests first.** `presentationSize.test.js` rewritten (11 red before the CSS), `time.test.js`, `CommentTimes.test.jsx`; 142 web tests, lint, format and build clean; CI 10/10.
 - **Limits.** The CSS tests read the stylesheet text. `#/ops` (PRs #150 to #152, #155) was not on main: it was captured from its branch with the theme merged in a throwaway worktree, showing only the non-operator state because the operations API is not deployed.
+
+### Password-manager attributes on the sign-in and register forms (21 November, 17:17; PR #159, `68a87f1`)
+
+- **Change.** Email input: `type="email"`, `autocomplete="username"`, `name="email"`; password input: `name="password"`, `autocomplete="current-password"` on sign-in and `"new-password"` on register; display name: `name="displayName"`, `autocomplete="name"`. Both pages were already one real form with a submit button, so Chrome's password manager can offer to save and fill the login. `AuthForm.test.jsx` (2 of 3 red before the change); 204 web tests, lint, format and build clean; CI 10/10.
+- **Limit.** The test shows the attributes, not Chrome's own save prompt, which needs a look in Chrome after the deploy.
