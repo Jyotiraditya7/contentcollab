@@ -652,3 +652,19 @@ Drafted the decision (ARCHITECTURE D28), a hash address parser, one function per
 - Read the Socket.IO client documentation (the `connect` event also fires on reconnection, rooms are lost on disconnect) and the server's own files for the routes, the events and the join acknowledgement instead of relying on memory.
 - An independent review found three errors that were fixed test first: Resolve was offered on threads the API refuses it on (only the thread's author may resolve), a slow or old list answer could overwrite a live comment or bring back a deleted one, and the token was read from storage on each render, so blocked storage sent requests without it. D28 was corrected where it claimed a role-based form and a document name in the mention notice.
 - Left for later: roles are not known to the client, so viewers still see the form and get a refusal; Delete is shown on the user's own comments only; comment authors show as "Member" plus part of an id until the API returns a name.
+
+## Share form and a cross-replica check, 21 November 2026
+
+### Prompt
+
+The demo needs a way to share a document with another user from the browser, using the shares routes that are on main, and the real-time claim needs proof that a comment crosses API pods. Build a minimal share form (tests first), and a script that holds two Socket.IO connections on different API pods through the Gateway and requires a posted comment to reach both.
+
+### AI Response
+
+Drafted the share form with the API's refusals in plain words and its tests, then a script split into a tested logic module (reading `/proc/net/tcp`, deciding which pod holds a socket, the run and its failure cases) and a thin entry that wires kubectl, fetch and `socket.io-client`.
+
+### What Your Team Did With It
+
+- Read the shares route and the role middleware to see what a non-owner and a non-member actually receive (403 and 404), and the socket server for the join answer and event names.
+- Independent reviews found that a 401 showed the server's raw text on the form, that a socket reconnecting could move to another pod and give a PASS with no crossing, and that the pod attribution (a before and after connection count) could be fooled; these got tests first, a recount after the comment, and the counts written to the evidence.
+- Left for later: link shares and role changes in the form, and running the script on the cluster, which needs a document with a version (#116).
