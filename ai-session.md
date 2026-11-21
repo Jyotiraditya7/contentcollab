@@ -700,3 +700,19 @@ Drafted decisions D29 and D30 with their sources, then each change with its fail
 - Checked every claim against the artifact: the CRD fields with `kubectl explain` on the cluster, the default body limit on nginx.org, the pg_dump and pg_restore flags, the CronJob fields and the Spaces lifecycle API on their own pages (D29, D30 list them with the date).
 - The first seed script left the current version empty (a data-changing CTE cannot see rows another CTE of the same statement inserts); the check showed it and it was rewritten as one statement per step. The first CronJob run failed the repository's own SEC-2 check on who may read the Spaces keys; the check now names the backup job, and D30 says the backup shares the app's key until a key of its own exists.
 - Left for later: a backup bucket and key of their own, a nightly restore check, the live-database restore (written from the documentation, not rehearsed), and the database-backed API tests on the #116 patch, which only CI ran.
+
+## The operations page, the restart drill and its button, 21 November 2026
+
+### Prompt
+
+The demo has no terminal on screen: after an upload, show what kubectl would show, live, in the web client, and let an operator restart a pod on purpose so the audience watches Kubernetes replace it while the data stays. Build the page on the read-only route, then the drill (rate limited, audited, least privilege), then the button with a confirm dialog. Tests first, an independent review of each change.
+
+### AI Response
+
+Drafted the page (cards for containers, autoscaler, nodes, storage, traffic, events and requests, refreshing every 5 s), the drill route (Eviction API, Redis lock, audit table, its own RBAC file) and the button with its dialog and countdown, with their tests.
+
+### What Your Team Did With It
+
+- Checked each change with an independent reviewer before it was pushed; their findings were fixed with a failing test first: a blank page on a non-JSON answer, a stalled request ending the refresh, a drill response held by a hung database write, an unset host name failing open, focus and Tab handling in the dialog.
+- Found that deleting a merged branch had closed the pull requests stacked on it, and rebuilt those by cherry-picking their own commits onto main.
+- Left for later: per-pod CPU and memory charts, the image tag per service, a page layout check in a browser at lecture-room size, and measuring the panel's cost on the API pods.
