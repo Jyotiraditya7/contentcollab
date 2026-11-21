@@ -684,3 +684,19 @@ Drafted decision D31 (a read-only `GET /api/v1/ops` behind sign-in and an admin 
 - Checked every path, field and PromQL expression against the live cluster read-only (events carry their time only in a deprecated field on this cluster; metrics.k8s.io is served as v1beta1) instead of relying on the documentation alone.
 - An independent review found a CPU quantity suffix the code could not read, a log line that would have shown an address, and a failed pod log read that dropped the whole card; each got a failing test first.
 - Left for later: the drill, the page, setting the admin ids from the setup script, and measuring the panel's cost on the API pods.
+
+## Gateway upload limit, nightly backup, demo seed and a patch to #116, 21 November 2026
+
+### Prompt
+
+Uploads through #116 would pass the Gateway, whose default body limit is 1 MiB; the database has no backup; the demo needs a document when uploads are not available; and #116 still carried a published Postgres port, an unused kustomization and a lockfile without integrity fields. Build, tests first: a ClientSettingsPolicy for 50 MiB, a pg_dump CronJob to Spaces with a rehearsed restore and a runbook, a seed script, and the three fixes on the #116 branch.
+
+### AI Response
+
+Drafted decisions D29 and D30 with their sources, then each change with its failing test first: a rendered-overlay test for the policy; 22 tests for the CronJob, the runbook and the restore script; a seed script checked on a migrated PostgreSQL. It ran the backup and the restore on the cluster and wrote the evidence file, and it merged main into the #116 branch and applied the three fixes there.
+
+### What Your Team Did With It
+
+- Checked every claim against the artifact: the CRD fields with `kubectl explain` on the cluster, the default body limit on nginx.org, the pg_dump and pg_restore flags, the CronJob fields and the Spaces lifecycle API on their own pages (D29, D30 list them with the date).
+- The first seed script left the current version empty (a data-changing CTE cannot see rows another CTE of the same statement inserts); the check showed it and it was rewritten as one statement per step. The first CronJob run failed the repository's own SEC-2 check on who may read the Spaces keys; the check now names the backup job, and D30 says the backup shares the app's key until a key of its own exists.
+- Left for later: a backup bucket and key of their own, a nightly restore check, the live-database restore (written from the documentation, not rehearsed), and the database-backed API tests on the #116 patch, which only CI ran.
