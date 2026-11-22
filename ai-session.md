@@ -748,3 +748,20 @@ Proposed a `/grafana` route on the HTTPS listener with a prefix rewrite, a `Refe
 - Checked the Grafana and Gateway Fabric documentation for the sub-path and rewrite behaviour before using it, and kept anonymous access off.
 - Ran the new test red (4 of 4) and then green with the manifest tests (61 of 61).
 - Left for later: applying it to the cluster and the browser check of the link, which the presenter does.
+
+## Board audit and a non-root web image, 22 November 2026
+
+### Prompt
+
+Audit every open issue and pull request against the record (column, boxes, owner, need for 2 and 5 December), close what is done or past its date with a dated comment, rank my issues that go beyond the demo by grade value, and start the top one on its own branch with the test written first. The Q&A check had just shown that the web image runs as root, which the sheet had claimed otherwise.
+
+### AI Response
+
+Read the 24 open issues and 6 open pull requests with their comments, wrote the audit table, proposed closing #22, #54, #67 and #80, ranked the issues (#70 and #104 first but both need a cluster action), and for #96 proposed moving the web image to `nginx/nginx-unprivileged` with the tests first.
+
+### What Your Team Did With It
+
+- Closed the four issues with one dated sentence each; kept #70 and #104 for a decision because each needs a write on the cluster.
+- Checked the unprivileged image's user, port and the old repository's deprecation notice against its Dockerfile and Docker Hub page before using them (D27).
+- Ran the new tests red (4 failures, 1 error), then green with the other k8s tests; an independent reviewer found a wrong sentence about the Gateway route and a test that passed without the change, both fixed.
+- Left for later: building and running the image (CI builds it but does not start it), and the merge, which is Milton's review and Nabeegh's call (PR #164).
