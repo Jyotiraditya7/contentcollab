@@ -44,7 +44,7 @@ Direct answer, then the reason or evidence, then the trade-off. Say plainly what
 
 ## Final deliverable, due Sat 5 Dec (35% of the grade; project handout, read 22 Nov 2026)
 
-Source: https://www.eecg.utoronto.ca/~cying/courses/ece1779-cloud/project/handout/ (sections "Final Project Deliverable" and "Marking Rubric").
+Source: https://www.eecg.utoronto.ca/~cying/courses/ece1779-cloud/project/handout/ (sections "Final Project Deliverable" and "Marking Rubric"). The 35% is the handout's own line: "Final Project Deliverable (due Saturday, December 5, 2026, 11:59 PM): 35% of final grade" (page read 22 Nov 2026); the proposal and README repeat it.
 
 - Submit the URL of the GitHub repository. If it is private, add `cying17`, `Gabeinstein` and `YirenZzz` as collaborators.
 - The repository must contain: the final report (`README.md`, at most 5000 words, images visible on GitHub), complete source code, `ai-session.md`, and a video demo.
