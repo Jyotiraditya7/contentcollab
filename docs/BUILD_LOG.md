@@ -435,7 +435,7 @@ Each of these pull requests was past its three-day review window with no review,
 - **Fix.** The missing `});` added and the stray one at the end removed. Lint, format check, 225 web tests and the build pass; CI 9 of 9 on `74244af`.
 - **Check that would have caught it.** CI's `web-test` job runs the Vitest suite after the format check; the format check stopped the job first, so the test error was only seen when run locally.
 
-### 22 November: Grafana behind the Gateway for the operations panel (issue #161, PR to follow)
+### 22 November: Grafana behind the Gateway for the operations panel (issue #161, PR #162)
 
 - **Decision.** The operations panel's "Open Grafana" link needs a public address, because the demo runs without a terminal and Grafana was reachable only through `kubectl port-forward`. Chosen: Grafana at `https://contentcollab.app/grafana/` through the same Gateway, behind Grafana's own login (anonymous access stays off). The API shows the link when `GRAFANA_URL` is set (`api/src/server.ts`, `web/src/ops/OpsPage.jsx`), so the change adds `GRAFANA_URL` to the doks overlay only (minikube has no public host).
 - **Option it beat.** A public read-only viewer (anonymous access with the Viewer role): it would show the dashboard without a sign-in, but it publishes the cluster's metrics to anyone. The presenter signs in to Grafana once before the talk instead.
