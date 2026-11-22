@@ -765,3 +765,19 @@ Read the 24 open issues and 6 open pull requests with their comments, wrote the 
 - Checked the unprivileged image's user, port and the old repository's deprecation notice against its Dockerfile and Docker Hub page before using them (D27).
 - Ran the new tests red (4 failures, 1 error), then green with the other k8s tests; an independent reviewer found a wrong sentence about the Gateway route and a test that passed without the change, both fixed.
 - Left for later: building and running the image (CI builds it but does not start it), and the merge, which is Milton's review and Nabeegh's call (PR #164).
+
+## The documents page lists and uploads, 22 November 2026
+
+### Prompt
+
+The live site still shows "Your documents appear here after 24 Nov" although the documents routes are deployed. Replace the placeholder on the Documents page with the real list and a working upload, on my own branch, with the tests changed first, because the demo needs it and PR #93 is still waiting on changes.
+
+### AI Response
+
+Wrote the failing tests for the list, Load more, the empty and error states and upload, then the page and a small `documents.js` client; after an independent read of the diff it added tests and fixes for a document with no current version, a double click on Load more, a failed reload after an upload, the API's own validation message and the real list of allowed file types.
+
+### What Your Team Did With It
+
+- Checked the response shape, the cursor, the multipart fields, the 50 MiB limit and the allowed extensions against `api/src/routes/documents.ts` and `parseUpload.ts` before relying on them.
+- Ran the tests red, then green (225 web tests, lint, format check, build); the five edge-case tests were red before their fix.
+- Left for later: a browser check on the cluster after the deploy, search and tags on this page, and a version number in the list (the API does not return one).
