@@ -457,3 +457,9 @@ Each of these pull requests was past its three-day review window with no review,
 - **Change (ARCHITECTURE D28).** `DocumentsPage` calls `GET /documents` and `POST /documents` through `web/src/api/documents.js`: title, role, updated time, a link to the current version, Load more with the cursor, empty and error states, upload with an optional title. The open-by-ids box is removed.
 - **Evidence.** Tests first: the new API-client and page tests were red (missing module, 8 of the page's tests), then green; a separate read of the diff found five edge cases (a document without a current version, a double click on Load more, a failed reload after an upload, a 400 that is not a type error, an over-claimed list of file types), each got a test that failed before its fix. 225 web tests, lint, format check and build pass.
 - **Limits.** Not run in a browser or on the cluster; the list shows no version number because the API returns none; search, tags and delete are not on the page.
+
+### 22 November: Share on each owned document (PR #146, `2682647`)
+
+- **Found.** With the documents list on main (#165) the share form still asked for a pasted document id, and the list showed no ids.
+- **Change.** Each document the user owns has a Share button that puts its id in the form; choosing the same document again refills the field, and choosing a document clears the last message. Tests first (two, then two more after a separate read of the diff, each failing before its fix); 244 web tests, lint, format check and build pass.
+- **Limits.** Not run in a browser; the button name repeats when two documents share a title.
