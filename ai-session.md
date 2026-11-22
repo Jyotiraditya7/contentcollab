@@ -716,3 +716,19 @@ Drafted the page (cards for containers, autoscaler, nodes, storage, traffic, eve
 - Checked each change with an independent reviewer before it was pushed; their findings were fixed with a failing test first: a blank page on a non-JSON answer, a stalled request ending the refresh, a drill response held by a hung database write, an unset host name failing open, focus and Tab handling in the dialog.
 - Found that deleting a merged branch had closed the pull requests stacked on it, and rebuilt those by cherry-picking their own commits onto main.
 - Left for later: per-pod CPU and memory charts, the image tag per service, a page layout check in a browser at lecture-room size, and measuring the panel's cost on the API pods.
+
+## Closing #146 and #147 and the introduction review, 22 November 2026
+
+### Prompt
+
+Bring the two open pull requests of mine up to date with main, fix what is red, and check each against its diff before merging; read the project introduction pull request (#134) against the course's four points and what is on main.
+
+### AI Response
+
+Merged main into both branches, found the share-token test in `web/src/Root.test.jsx` left without its closing brace by an earlier merge (so the operations test ran inside it), closed it, and drafted the review comments.
+
+### What Your Team Did With It
+
+- Ran lint, format check, the web tests (225) and the build for #146, and the manifest renders, the shell syntax check and the 22 backup tests for #147, then waited for CI on the pushed heads (9 of 9 for both).
+- Had each review comment checked against the repository by a second reader before it was posted; two word counts in the #134 comment were checked by hand.
+- Left for later: the merges themselves, and Milton's change to the first sentence of the introduction.

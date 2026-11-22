@@ -428,3 +428,9 @@ Each of these pull requests was past its three-day review window with no review,
 
 - **Change.** Email input: `type="email"`, `autocomplete="username"`, `name="email"`; password input: `name="password"`, `autocomplete="current-password"` on sign-in and `"new-password"` on register; display name: `name="displayName"`, `autocomplete="name"`. Both pages were already one real form with a submit button, so Chrome's password manager can offer to save and fill the login. `AuthForm.test.jsx` (2 of 3 red before the change); 204 web tests, lint, format and build clean; CI 10/10.
 - **Limit.** The test shows the attributes, not Chrome's own save prompt, which needs a look in Chrome after the deploy.
+
+### 22 November: a merge left a test unclosed in #146 (PR #146, `74244af`)
+
+- **Incident.** After main was merged into `nabeegh/share-form`, `web/src/Root.test.jsx` had the share-token test without its closing `});`, so the operations test sat inside it; Vitest refuses a test inside a test, and Prettier already failed on the same file in CI (`web-test` red on `36be6f4`).
+- **Fix.** The missing `});` added and the stray one at the end removed. Lint, format check, 225 web tests and the build pass; CI 9 of 9 on `74244af`.
+- **Check that would have caught it.** CI's `web-test` job runs the Vitest suite after the format check; the format check stopped the job first, so the test error was only seen when run locally.
