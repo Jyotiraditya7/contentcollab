@@ -44,7 +44,7 @@ Out of scope on purpose: live text editing and track changes (D3).
 | CI/CD | GitHub Actions: checks on every pull request; on merge, images tagged with the commit SHA, applied once, rolled back if the rollout fails (D25, `docs/evidence/ci-cd.md`) |
 | Monitoring | Prometheus, kube-state-metrics, Grafana in the `observability` namespace (D19); `/metrics` and JSON request logs on the API (D16); an operations page in the web client (D31); DigitalOcean metrics |
 | Local development | Docker Compose (D7) |
-| Backup | Nightly `pg_dump` to Spaces and a restore runbook (D30; pull request #147, open at the time of writing) |
+| Backup | Nightly `pg_dump` CronJob to Spaces and a restore runbook (D30; pull request #147, open at the time of writing; the CronJob was applied to the cluster from its branch and has run: `docs/evidence/2026-11-22-cluster-check.txt`) |
 
 ## Features
 
@@ -54,7 +54,7 @@ Core features (proposal 2.6), state on `main` at 22 November (`docs/ROADMAP_2026
 - **Documents and versions.** Upload as a new version, download, version list; revert in the API (PR #116, web versions panel #154). An identical file is refused with 409.
 - **Sharing.** By user and by link with an expiry (PR #114); the share form in the web client is open as PR #146.
 - **Comments.** Threads, replies, resolve and @-mentions, live for everyone on the version (PRs #135, #136, #144; D28). Pins are stored but not drawn.
-- **Operations page.** For an admin: pods and containers by node, the autoscaler, nodes, storage, traffic, CPU and memory charts from Prometheus, recent events, and a restart button for an API pod (D31; PRs #150, #151, #157, #158, #160). A link to Grafana at `/grafana/` is PR #162.
+- **Operations page.** For an admin: pods and containers by node, the autoscaler, nodes, storage, traffic, CPU and memory charts from Prometheus, recent events, and a restart drill for an API pod or the database pod, one a minute, admin only (D31; PRs #150, #151, #157, #158, #160). A link to Grafana at `/grafana/` is PR #162.
 
 Advanced features, how they meet the course requirements:
 
@@ -65,7 +65,7 @@ Advanced features, how they meet the course requirements:
 | Real-time | Socket.IO with a Redis adapter, so an event on one API pod reaches a viewer on another | The reason the API is stateless and can be scaled | D4, D12, D28; `scripts/cross-replica.mjs` and `docs/evidence/2026-11-21T21-*-cross-replica.txt` |
 | Auto-scaling and high availability | HPA 2 to 5, pods spread over both nodes, rolling updates with `maxUnavailable: 0`, preStop drain | Scaling out needs stateless pods, shared events and a database that survives pod loss | D14; `docs/evidence/2026-11-21-hpa-watch.txt`: 2 to 5 pods, 0 failures at 50 req/s, 16 failures (0.06%) at 150 req/s within one second as the pod set changed |
 
-Stretch: backup and recovery (PR #147, open); email on share and mention (issue #44, not started).
+Stretch: backup and recovery (PR #147, open, CronJob already running on the cluster; the proposal named Milton as owner, the work was done by Nabeegh after the first attempt, #143, was closed); email on share and mention (issue #44, not started).
 
 ## User Guide
 
@@ -83,13 +83,13 @@ Stretch: backup and recovery (PR #147, open); email on share and mention (issue 
 - **Prerequisites:** Docker with Compose, Node.js 24, `kubectl` and minikube for the manifests. `[TODO: Nabeegh, confirm versions against the Dockerfiles and CI]`
 - **Environment:** copy `.env.example` to `.env`; it lists every variable; `.env` is never committed.
 - **Database and storage:** `docker compose up --build` starts the API, web, worker, PostgreSQL and Redis; migrations run before the API starts. Files go to Spaces in the cluster; locally `[TODO: Jyotiraditya, how local file storage works with PR #89]`.
-- **Tests:** API tests need PostgreSQL and Redis (`compose.test.yaml`); `npm test` in `api/` and `worker/`; `npm test` in `web/`; manifest checks with `python3 -m unittest tests.test_k8s_deploy tests.test_grafana_route ...` (the `k8s` job in `.github/workflows/ci.yml` lists them). `[TODO: Nabeegh, one exact command list, run once on a clean clone]`
+- **Tests:** API tests need PostgreSQL and Redis (`compose.test.yaml`); `npm test` in `api/` and `worker/`; `npm test` in `web/`; manifest checks with `python3 -m unittest tests.test_k8s_deploy tests.test_k8s_status_rbac tests.test_deploy_undo tests.test_gateway_body_size -v` (the `k8s` job in `.github/workflows/ci.yml`; PR #162 adds `tests.test_grafana_route`). `[TODO: Nabeegh, one exact command list, run once on a clean clone]`
 - **Cluster:** `scripts/cluster-up.sh`, `scripts/observability-up.sh`, `scripts/smoke.sh`; `kubectl apply -k k8s/minikube` for a local cluster (`k8s/README.md`).
 - **Credentials:** `[TODO: Nabeegh, after sending them: "Credentials sent to TA", with the date. Handout: password-protected archive to the TA by email, password in a separate email, both by the deadline.]`
 
 ## Deployment Information
 
-Live URL: https://contentcollab.app/ (health: https://contentcollab.app/health). Cluster `contentcollab` on DigitalOcean, region NYC3, two nodes, left running through grading (cost plan: `docs/COST_PLAN.md`). State on 22 November: 2 API, 2 web, 1 worker, PostgreSQL, Redis; HPA 2 to 5; Prometheus 8 of 8 targets up (`docs/evidence/2026-11-22-cluster-check.txt`). `[TODO: Nabeegh, confirm the cluster region and node size on 4 Dec; README timeline and BUILD_LOG mention tor1 for the earlier cluster]`
+Live URL: https://contentcollab.app/ (health: https://contentcollab.app/health). Cluster `contentcollab` on DigitalOcean, region NYC3, two nodes, left running through grading (cost plan: `docs/COST_PLAN.md`). State on 22 November: 2 API, 2 web, 1 worker, PostgreSQL, Redis; HPA 2 to 5; Prometheus 8 of 8 targets up (`docs/evidence/2026-11-22-cluster-check.txt`). `[TODO: Nabeegh, confirm the cluster region and node size on 4 Dec]` The Spaces bucket is in TOR1 and the cluster is in NYC3 (D2, `docs/BUILD_LOG.md`).
 
 ## Video Demo
 
@@ -107,7 +107,7 @@ How correctness was verified: tests written before the change and seen failing (
 
 From merged pull requests and the issue board on 22 November (`git shortlog` counts differ and are not the measure: the handout assesses substance). Each member writes the final wording `[TODO: each member]`.
 
-- **Nabeegh Khan:** cloud orchestration and operations: the DigitalOcean cluster and its bring-up scripts, Kubernetes manifests and overlays, the Gateway and TLS, autoscaling and rolling-update work with load tests, CI/CD and its rollback, observability (Prometheus, Grafana, `/metrics`, request logs), the operations page and restart drill, backup CronJob, the web client's comments and versions panel (the share form is open as #146), the worker, the test harness, and the architecture, build log and practices documents. 56 merged pull requests, including #62, #72, #83, #99, #102, #103, #118, #123, #125, #140, #144, #145, #148, #150 to #160.
+- **Nabeegh Khan:** cloud orchestration and operations: the DigitalOcean cluster and its bring-up scripts, Kubernetes manifests and overlays, the Gateway and TLS, autoscaling and rolling-update work with load tests, CI/CD and its rollback, observability (Prometheus, Grafana, `/metrics`, request logs), the operations page and restart drill, backup CronJob, the web client's comments and versions panel (the share form is open as #146), the worker, the test harness, and the architecture, build log and practices documents. 56 merged pull requests, including #62, #72, #83, #99, #102, #103, #118, #123, #125, #140, #144, #145, #148, #150, #151, #153, #154, #156, #157, #158, #159 and #160 (#152 and #155 were closed and replaced by #157 and #158).
 - **Eyrika Liu** (`@Oct31yrika`): API: authentication and roles (#111), shares by user and link (#114), documents and versions (#116); proposal section 1 (#66). Open follow-ups #129, #130, email on share and mention #44. `[TODO: Eyrika to check and add reviews and design work]`
 - **Jyotiraditya Kale** (`@Jyotiraditya7`): database schema and first migration (#88), Spaces storage module (#89), threaded comments and mentions (#135), the Socket.IO server with the Redis adapter (#136), the reverted-from migration (#137), proposal section 4 draft (#33). Client hook for live events #46 and review decisions #24 open. `[TODO: Jyotiraditya to check and add]`
 - **Milton Wang** (`@MWang-max`): the React skeleton served by Nginx (#86), the API contract review (#85), proposal section 3 draft (#34), the project introduction (#134), the presentation deck; sign-in and document list (#93) and document view (#49, #91) are open. `[TODO: Milton to check and add]`
@@ -135,6 +135,6 @@ Mismatches between the current `README.md` and the record, to fix when this move
 1. The "Status, 13 November" paragraph is stale; replace it with the live state above.
 2. "Stack" says no monitoring agent runs and monitoring is DigitalOcean metrics and `kubectl` logs; since D19 the cluster runs Prometheus, kube-state-metrics and Grafana.
 3. "What it does" says PDFs and images render in the browser and Office files are converted to PDF; that is not built (roadmap: PDF and image rendering is issue #49, Milton). Say what is built.
-4. The timeline's "Datadog install" and `tor1` references predate the rebuild (cluster is `do-nyc3-contentcollab`, `docs/BUILD_LOG.md`).
+4. The Status paragraph's "Datadog install" predates the rebuild, and `docs/BUILD_LOG.md` mentions `tor1` for the earlier cluster; the cluster is now `do-nyc3-contentcollab` while the Spaces bucket stays in TOR1.
 5. Word budget: the README must stay at or under 5000 words with screenshots as images; run `wc -w README.md` before submitting. The current README is about 1360 words.
 6. `ai-session.md` currently has many entries from one member; the handout asks for 2 to 4 representative ones per team, so choose entries that show judgment and verification, and add one from each other member who used AI.
