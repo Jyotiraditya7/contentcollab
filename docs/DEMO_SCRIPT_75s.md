@@ -2,7 +2,7 @@
 
 For the Wednesday 2 December presentation (slide 5, live demonstration). Rules from `docs/COURSE_PRESENTATION_REQUIREMENTS.md`: no terminal, bash, PowerShell or kubectl on screen; everything is driven from the web app and the browser; a live demo is required and a recording is only a backup. The speaker is Nabeegh. The two demo accounts are named below and never written out with their passwords: the admin account `admin@contentcollab.app` (owner of the seeded document, allowed into the operations panel) and the reviewer account `reviewer@contentcollab.app` (commenter, refused by the operations panel).
 
-What each step does was checked against the live site on 23 November 2026 through the API and the live URLs, 18 of 18 checks passing: `docs/evidence/2026-11-23-cloud-test.txt`. The clicks themselves have not been tried in a browser by this script; the first rehearsal does that.
+What each step does was checked against the live site on 23 November 2026 through the API and the live URLs: 17 of 18 checks passed in the run, and the one failure (4b) was a wrong field name in the check itself; the same snapshot read again passes: `docs/evidence/2026-11-23-cloud-test.txt`. The clicks themselves have not been tried in a browser by this script; the first rehearsal does that.
 
 ## Set up before the slot (not part of the 75 seconds)
 
@@ -10,7 +10,7 @@ What each step does was checked against the live site on 23 November 2026 throug
 2. In the left window, sign in as the admin once, post one comment on the seeded document ("Reviewed the architecture section"), and sign out again. The seeded document starts with no comments, and the restart step is only convincing if something is there to survive it.
 3. Upload a small text file titled "Design review draft" as the admin, and do not share it. The share step needs one document the reviewer cannot see yet. If the reviewer can see it, remove that share before the slot.
 4. Chrome has the admin's saved login for the sign-in page, and Grafana's admin login saved for `https://contentcollab.app/grafana/`, so no password is typed on stage. The Grafana sign-in is done once in Chrome ahead of time.
-5. One practice restart of the database pod five minutes before the slot, so the pod and its image are warm. The pause was 13 seconds on the warm run and 62 seconds on a cold one on 23 November; plan for up to a minute.
+5. One practice restart of the database pod five minutes before the slot, so the pod and its image are warm; reload the right window afterwards. The pause was 13 seconds on the second run on 23 November, and the first run's first answer came only at 62 seconds (cause not proven); plan for up to a minute.
 6. Do not merge or deploy in the 20 minutes before the slot: a deploy replaces the API pods.
 
 ## The path
@@ -19,16 +19,16 @@ Each line is one click or one short action. Times are seconds from the start; th
 
 | Time | Page | Do | The screen shows | Say |
 |---|---|---|---|---|
-| 0:00 | Sign in | Click "Email", pick the saved admin login, click "Sign in" | The Documents page, "Signed in as" with the admin name, the seeded document and "Design review draft" in the list | "I sign in as the admin. The sign-in goes through the Gateway to one of our two API pods." |
-| 0:06 | Documents | Click "Operations" in the top bar | The Operations page: Containers (8 pods on 2 nodes), Autoscaler (2 of 2 to 5), Nodes, Storage (5 GiB volume, documents, versions, comments), the CPU and memory charts, Recent events | "This page is how we watch the cluster without a terminal. Eight pods on two nodes, the volume for the database, the autoscaler at two pods." |
+| 0:00 | Sign in | Click the Email field, pick the saved admin login, click "Sign in" | The Documents page, "Signed in as" with the admin name, the seeded document and "Design review draft" in the list | "I sign in as the admin, through the Gateway." |
+| 0:06 | Documents | Click "Operations" in the top bar | The Operations page: Containers (8 pods on 2 nodes), Autoscaler (API copies running: 2 of 2, may use 2 to 5), Nodes, Storage (database disk about 5 GiB, bound; documents, versions, comments), the CPU and memory charts, Recent events | "We watch the cluster from here, no terminal. Eight pods, two nodes, a disk for the database." |
 | 0:15 | Operations | Click "Restart the database pod" | A question: "Restart the database pod?" with Cancel and Restart | "Now I stop the database on purpose." |
-| 0:18 | Operations | Click "Restart" | A message that Kubernetes is stopping pod postgres-0; Recent events shows the restart drill; the postgres row changes state | "Kubernetes starts a new database pod on the same volume. The app pauses for a moment." |
-| 0:23 | Operations | Click "Open Grafana for the details" (opens a new tab) | Grafana's ContentCollab dashboard: request rate, errors, latency, autoscaler replicas, node memory | "While it restarts, Grafana shows the same cluster over time: request rate, errors and latency. Grafana is a separate pod, so it stays up." |
-| 0:33 | Grafana | Close the tab (Ctrl+W) | Back on Operations; the postgres row is Running with an age of seconds; Recent events lists the restart | "The new pod is already running, you can see its age is seconds." |
+| 0:18 | Operations | Click "Restart" | The message "Kubernetes is stopping pod postgres-0. A new one will start: watch the events below." The cards may stay frozen until the database is back (the API is not ready while it is down) | "Kubernetes starts a new database pod on the same disk." |
+| 0:23 | Operations | Click "Open Grafana for the details" (opens a new tab) | Grafana's ContentCollab dashboard: request rate, errors, latency, autoscaler replicas, node memory | "Meanwhile Grafana, a separate pod, shows request rate, errors and latency." |
+| 0:33 | Grafana | Close the tab (Ctrl+W) | Back on Operations; wait a second for it to refresh: the postgres row is Running with an age of seconds and Recent events lists the restart. If the banner "The data on screen is older than 15 seconds" shows, the database is still coming back | "The new pod is running; its age is seconds." (If the banner shows: "the page is waiting for the database", and stay a few seconds longer.) |
 | 0:39 | Operations | Click "Documents", then "Open" on the seeded document | The document page, with the comment posted before the slot still listed | "The document and its comment are still here. The data lived on the volume, not in the pod." |
 | 0:47 | Document | Click "Back to documents", then "Share" on the "Design review draft" row | The share form with that document's id filled in | "Advanced feature one: sharing. I pick the document and a person." |
 | 0:53 | Documents | In the form type `reviewer@contentcollab.app`, choose the role "commenter", click "Share" | "Shared with reviewer@contentcollab.app as commenter." | "The role is enforced by the API: a viewer cannot comment, a commenter can." |
-| 1:03 | Documents | Click "Open" on the seeded document, click the comment box, type "Approved", click "Add comment" | In the right window, without a reload, the new comment appears in the comments list | "Advanced feature two: live comments. The right window is a different user, on a different API pod, and the comment arrives through Redis without a refresh." |
+| 1:03 | Documents | Click "Open" on the seeded document, click the comment box, type "Approved", click "Add comment" | In the right window, without a reload, the new comment appears in the comments list | "Advanced feature two: live comments. The right window is another user, possibly on the other API pod, and the comment arrives through Redis with no refresh." |
 
 Ends at 1:15 (1:03 plus 12 seconds for the last step). If the restart pause is longer than the Grafana minute, say so plainly ("the app pauses while the database pod comes back, up to a minute") and stay on Grafana a few seconds longer; the next step needs the new pod to be Ready.
 
