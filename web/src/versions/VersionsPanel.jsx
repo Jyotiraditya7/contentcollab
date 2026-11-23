@@ -24,7 +24,7 @@ function reason(error, what) {
   return `Could not ${what}. Try again.`;
 }
 
-export default function VersionsPanel({ token, documentId, versionId }) {
+export default function VersionsPanel({ token, documentId, versionId, refreshKey = 0 }) {
   const [versions, setVersions] = useState([]);
   const [loadState, setLoadState] = useState("loading");
   const [message, setMessage] = useState(null);
@@ -43,7 +43,7 @@ export default function VersionsPanel({ token, documentId, versionId }) {
 
   useEffect(() => {
     reload();
-  }, [reload]);
+  }, [reload, refreshKey]);
 
   async function upload() {
     const file = fileInput.current?.files?.[0];

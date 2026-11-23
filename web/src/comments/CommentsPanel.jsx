@@ -1,12 +1,11 @@
 // The comments of one version: load, post, reply, resolve, delete, and live changes from other tabs (D28).
-import { io } from "socket.io-client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError } from "../api/client.js";
-import { createComment, deleteComment, listComments, updateComment } from "../api/comments.js";
-import { connectVersion } from "../realtime.js";
+import { createComment, deleteComment, updateComment } from "../api/comments.js";
 import CommentBody from "./CommentBody.jsx";
 import CommentForm from "./CommentForm.jsx";
-import { applyEvent, authorLabel, buildThreads } from "./thread.js";
+import { authorLabel, buildThreads } from "./thread.js";
+import useRealtime from "./useRealtime.js";
 import { formatClock, relativeTime } from "./time.js";
 
 const LIVE_TEXT = {
@@ -17,7 +16,6 @@ const LIVE_TEXT = {
   error: "Live updates are not available for this version.",
 };
 
-const defaultConnect = (options) => connectVersion({ io, ...options });
 
 // A readable message for a failed call. Only posting is refused by role; resolving and deleting
 // are also refused by authorship, so those say so without naming a cause
@@ -35,12 +33,17 @@ export default function CommentsPanel({
   user,
   documentId,
   versionId,
-  connect = defaultConnect,
+  connect,
+  onVersionCreated,
 }) {
-  const [comments, setComments] = useState([]);
-  const [loadState, setLoadState] = useState("loading");
-  const [liveState, setLiveState] = useState("connecting");
-  const [mentioned, setMentioned] = useState(false);
+  const {
+    comments,
+    loadState,
+    liveState,
+    mentioned,
+    setMentioned,
+    apply,
+  } = useRealtime({ token, documentId, versionId, connect, onVersionCreated });
   const [replyTo, setReplyTo] = useState(null);
   const [actionError, setActionError] = useState(null);
 
@@ -50,47 +53,6 @@ export default function CommentsPanel({
     const timer = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
-
-  // Only the newest list answer is used, and events that arrive while a list is loading are
-  // replayed on top of it, so neither an old answer nor a slow one drops a live change
-  const newest = useRef(0);
-  const loading = useRef(false);
-  const pending = useRef([]);
-
-  const apply = useCallback((event, payload) => {
-    if (loading.current) pending.current.push([event, payload]);
-    setComments((list) => applyEvent(list, event, payload));
-  }, []);
-
-  const reload = useCallback(async () => {
-    const mine = ++newest.current;
-    loading.current = true;
-    pending.current = [];
-    try {
-      const snapshot = await listComments(token, documentId, versionId);
-      if (mine !== newest.current) return;
-      const replayed = pending.current.reduce((list, [e, p]) => applyEvent(list, e, p), snapshot);
-      setComments(replayed);
-      setLoadState("ready");
-    } catch {
-      if (mine === newest.current) setLoadState("error");
-    } finally {
-      if (mine === newest.current) loading.current = false;
-    }
-  }, [token, documentId, versionId]);
-
-  useEffect(() => {
-    reload();
-    const live = connect({
-      token,
-      versionId,
-      onEvent: apply,
-      onMention: () => setMentioned(true),
-      onJoined: reload,
-      onState: setLiveState,
-    });
-    return () => live.close();
-  }, [token, versionId, connect, reload, apply]);
 
   async function post(body, parentId) {
     try {
