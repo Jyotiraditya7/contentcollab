@@ -53,9 +53,7 @@ describe("useRealtime", () => {
         headers: expect.objectContaining({ Authorization: "Bearer t0k" }),
       }),
     );
-    expect(connect).toHaveBeenCalledWith(
-      expect.objectContaining({ token: "t0k", versionId: VER }),
-    );
+    expect(connect).toHaveBeenCalledWith(expect.objectContaining({ token: "t0k", versionId: VER }));
 
     act(() => live.handlers.onState("live"));
     expect(result.current.liveState).toBe("live");
@@ -105,8 +103,7 @@ describe("useRealtime", () => {
   it("clears an old mention notification when switching versions", async () => {
     const { live, connect } = setup();
     const { result, rerender } = renderHook(
-      ({ versionId }) =>
-        useRealtime({ token: "t0k", documentId: DOC, versionId, connect }),
+      ({ versionId }) => useRealtime({ token: "t0k", documentId: DOC, versionId, connect }),
       { initialProps: { versionId: VER } },
     );
 

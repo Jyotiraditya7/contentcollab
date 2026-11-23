@@ -16,7 +16,6 @@ const LIVE_TEXT = {
   error: "Live updates are not available for this version.",
 };
 
-
 // A readable message for a failed call. Only posting is refused by role; resolving and deleting
 // are also refused by authorship, so those say so without naming a cause
 function failureMessage(error, what) {
@@ -36,14 +35,13 @@ export default function CommentsPanel({
   connect,
   onVersionCreated,
 }) {
-  const {
-    comments,
-    loadState,
-    liveState,
-    mentioned,
-    setMentioned,
-    apply,
-  } = useRealtime({ token, documentId, versionId, connect, onVersionCreated });
+  const { comments, loadState, liveState, mentioned, setMentioned, apply } = useRealtime({
+    token,
+    documentId,
+    versionId,
+    connect,
+    onVersionCreated,
+  });
   const [replyTo, setReplyTo] = useState(null);
   const [actionError, setActionError] = useState(null);
 

@@ -16,7 +16,12 @@ export default function DocumentPage({ token, user, documentId, versionId, conne
           <a href="#/">Back to documents</a>
         </p>
         <h2>Document</h2>
-        <VersionsPanel token={token} documentId={documentId} versionId={versionId} refreshKey={versionsRefreshKey} />
+        <VersionsPanel
+          token={token}
+          documentId={documentId}
+          versionId={versionId}
+          refreshKey={versionsRefreshKey}
+        />
       </section>
       <CommentsPanel
         token={token}
