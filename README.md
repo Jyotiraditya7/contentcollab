@@ -12,7 +12,7 @@ Presentation (Google Slides, owned by Milton): https://docs.google.com/presentat
 
 ![Components and their connections](docs/img/architecture.png)
 
-Solid lines carry application traffic; dashed lines are configuration, deployment and monitoring. Source: [docs/img/architecture.svg](docs/img/architecture.svg).
+Solid arrows carry traffic and data; dashed arrows are deploys, certificates and monitoring. Source: [docs/img/architecture.svg](docs/img/architecture.svg). A simpler version for one slide, the request path only: [docs/img/architecture-slide.png](docs/img/architecture-slide.png) (source [architecture-slide.svg](docs/img/architecture-slide.svg)).
 
 Decisions and trade-offs: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

@@ -31,6 +31,10 @@ Out of scope on purpose: live text editing and track changes (D3).
 
 ## Technical Stack
 
+![Components and their connections: browser, Gateway, web, api, worker, Redis, PostgreSQL, Spaces, monitoring and CI/CD](docs/img/architecture.png)
+
+Solid arrows carry traffic and data; dashed arrows are deploys, certificates and monitoring. Source: [docs/img/architecture.svg](docs/img/architecture.svg).
+
 | Layer | Choice |
 |-------|--------|
 | Orchestration | **Kubernetes** on DigitalOcean (DOKS 1.37, two worker nodes), chosen over Docker Swarm for the autoscaler and for volume handling (D1). One Kustomize base with `minikube` and `doks` overlays (`k8s/`) |
@@ -138,3 +142,4 @@ Mismatches between the current `README.md` and the record, to fix when this move
 4. The Status paragraph's "Datadog install" predates the rebuild, and `docs/BUILD_LOG.md` mentions `tor1` for the earlier cluster; the cluster is now `do-nyc3-contentcollab` while the Spaces bucket stays in TOR1.
 5. Word budget: the README must stay at or under 5000 words with screenshots as images; run `wc -w README.md` before submitting. The current README is about 1360 words.
 6. `ai-session.md` currently has many entries from one member; the handout asks for 2 to 4 representative ones per team, so choose entries that show judgment and verification, and add one from each other member who used AI.
+7. The architecture figure in "Technical Stack" uses the path `docs/img/architecture.png`, which is right for the root `README.md` and not for this file in `docs/report/`; the redrawn figure (23 November) matches `main`, so keep it when this moves in. Update the Backup row of the stack table: #147 is merged.
