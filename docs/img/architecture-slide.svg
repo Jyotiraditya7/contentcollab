@@ -115,7 +115,7 @@
   <rect class="bg" x="572" y="411" width="146" height="28"/><text x="645" y="432" class="l">/api, /socket.io</text>
   <rect class="bg" x="975" y="416" width="70" height="28"/><text x="1010" y="437" class="l">SQL</text>
   <rect class="bg" x="1000" y="596" width="90" height="28"/><text x="1045" y="617" class="l">files</text>
-  <rect class="bg" x="1005" y="535" width="156" height="28"/><text x="1157" y="556" class="le">nightly backup</text>
+  <rect class="bg" x="1005" y="535" width="156" height="28"/><text x="1157" y="556" class="le">nightly pg_dump</text>
   <rect class="bg" x="682" y="580" width="84" height="28"/><text x="762" y="601" class="le">metrics</text>
   <rect class="bg" x="812" y="146" width="250" height="28"/><text x="817" y="167" class="ls">roll out, undo on failure</text>
 </g>

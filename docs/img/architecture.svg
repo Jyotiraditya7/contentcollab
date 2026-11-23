@@ -67,7 +67,7 @@
 <g id="load-balancer">
   <rect x="290" y="205" width="230" height="80" rx="8" fill="#fff4e0" stroke="#b7791f" stroke-width="2.5"/>
   <text x="405" y="239" class="n">Load balancer</text>
-  <text x="405" y="267" class="d">DigitalOcean</text>
+  <text x="405" y="267" class="d">DigitalOcean service</text>
 </g>
 <g id="gateway">
   <rect x="290" y="335" width="230" height="105" rx="8" fill="#fff4e0" stroke="#b7791f" stroke-width="2.5"/>
@@ -156,16 +156,16 @@
   <path d="M1070,615 L920,615" class="a" marker-end="url(#arr)"/>
   <path d="M920,508 L1370,508" class="a" marker-end="url(#arr)"/>
   <path d="M1300,615 L1370,615" class="a" marker-end="url(#arr)"/>
-  <path d="M525,820 L575,820" class="a" marker-end="url(#arr)"/>
-  <path d="M785,820 L835,820" class="a" marker-end="url(#arr)"/>
+  <path d="M525,820 L575,820" class="a dash" marker-end="url(#arr)"/>
+  <path d="M785,820 L835,820" class="a dash" marker-end="url(#arr)"/>
 </g>
 <!-- Arrows: certificates, deploy, monitoring (dashed) -->
 <g id="arrows-dashed">
   <path d="M340,500 L340,440" class="a dash" marker-end="url(#arr)"/>
   <path d="M620,780 L620,490 L690,490" class="a dash" marker-end="url(#arr)"/>
-  <path d="M620,62 L700,62" class="a" marker-end="url(#arr)"/>
+  <path d="M620,62 L700,62" class="a dash" marker-end="url(#arr)"/>
   <path d="M560,120 L560,172 L700,172 L700,195" class="a dash" marker-end="url(#arr)"/>
-  <path d="M830,95 L830,195" class="a dash" marker-end="url(#arr)"/>
+  <path d="M830,195 L830,95" class="a dash" marker-end="url(#arr)"/>
 </g>
 
 <!-- Arrow labels (white backing so lines do not run through the text) -->
