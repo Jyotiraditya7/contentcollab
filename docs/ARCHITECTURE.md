@@ -563,6 +563,21 @@ Sources, checked 21 November 2026: Kubernetes documentation, "Using RBAC Authori
 
 Sources, checked 23 November 2026: Kubernetes reference, `kubectl config current-context` (kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_current-context/); DigitalOcean, `doctl kubernetes cluster kubeconfig save` (docs.digitalocean.com/reference/doctl/reference/kubernetes/cluster/kubeconfig/save/: `--alias` defaults to `do-[region]-[cluster-name]`; `--set-current-context` default true); `docs/PRACTICES.md` INF-20 (lecture 7, p54-55).
 
+### D33. Comparing two versions of a text document: a line diff in the API, side by side for the rest (decided 23 November, #23)
+
+**Problem.** D21 built the diff module in the worker ahead of the version tables and left a feature-flagged route that answers 501. The version tables and the content route are on main (#116), so the comparison can now return data. A reviewer opening a new version needs to see what changed.
+
+**Decision.** `GET /api/v1/documents/:documentId/versions/compare?from=<versionId>&to=<versionId>`, replacing the 501 stub and its `FEATURE_VERSION_COMPARE` flag.
+
+- **What is compared.** Text and Markdown (`text/plain`, `text/markdown`, the two text types the upload route allows): a line diff, `lines` of `keep`, `remove` and `add` with line numbers, plus `added` and `removed` counts. Any other type (PDF, images, Office files) answers 415 `UNSUPPORTED_TYPE`; the web shows the two versions side by side as file details with download buttons. No pixel diff and no PDF text diff in this pass (D21's page diff stays in the worker).
+- **Where it is computed.** In the API, in the request: it reads the two stored files (`getStream`), decodes them as UTF-8 and runs the same `lineDiff`. The worker result is not stored anywhere and nothing enqueues jobs yet (D21, STUDY_GUIDE section 2), so going through the queue would add a poll and a result store for nothing. The pure `lineDiff` is copied into `api/src/lib/diff.ts` (the two services are built from their own folders and share no code) with a note to keep the copies in step.
+- **Limits.** A version over 2 MiB, or a diff above the module's own limits (2,000,000 characters, 4,000,000 table cells), answers 413 `TOO_LARGE`; the work is bounded, so one request cannot hold an API pod's CPU for long.
+- **Access.** The same as reading a version: sign-in and any role on the document (`requireRole` of all four roles). No share: 404 `Document Not Found`, as the other version routes. A version id that belongs to another document: 404 `Version Not Found`. `from` and `to` that are not UUIDs, or equal: 400.
+
+**Option it beat.** Enqueueing a compare job for the worker and polling for the result: it matches D21's first plan, but the result would need a store and the API a producer, and the demo never needs a long-running job for two text files of at most 2 MiB.
+
+**Tests first.** Jest: the access cases (no token, no share, a version of another document), the types, the limits and the diff itself in the API; Vitest for the web view (added and removed lines marked by a sign and a word as well as by colour).
+
 ### D0. Service model
 
 Lecture 1 splits cloud services into IaaS (you manage the OS), PaaS (the provider manages the hosts, you ship containers or code) and FaaS (functions run on events). Assignment 1 was IaaS: a droplet, Nginx, PostgreSQL installed by hand. The project is not that. We use managed Kubernetes, where DigitalOcean runs the control plane and the worker nodes' OS and we run containers (PaaS-style on top of the provider's IaaS), object storage as a service for files, and the provider's metrics and alerts. A DigitalOcean Function is an option for one small event-driven job (a thumbnail when a file lands in Spaces) if we want the serverless advanced feature; it is not in the core path. The point for the proposal: we manage containers and data, not machines.
