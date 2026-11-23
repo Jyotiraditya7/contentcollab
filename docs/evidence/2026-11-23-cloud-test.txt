@@ -1,0 +1,122 @@
+# 2026-11-23 cloud test (live, context do-nyc3-contentcollab)
+## Item 2: #164 web runs as uid 101
+2026-11-23T22:42:53Z
+$ exec deploy/web -- id -u
+101
+$ get pods -l app=web
+NAME                   READY   STATUS    RESTARTS   AGE
+web-6bb4cbcbcf-g2msc   1/1     Running   0          22h
+web-6bb4cbcbcf-tkl46   1/1     Running   0          22h
+$ web image
+ghcr.io/nabeegh-khan/contentcollab-web:a3aa4fc6d4e2cd77483c489b008bb77a70ef105a
+$ curl -sI https://contentcollab.app/
+HTTP/1.1 200 OK
+Server: nginx
+Date: Mon, 23 Nov 2026 22:42:58 GMT
+Content-Type: text/html
+Content-Length: 479
+$ curl /health
+{"status":"ok","postgres":"ok","redis":"ok"}
+## Item 3 precheck: /grafana
+HTTP/1.1 500 Internal Server Error
+Server: nginx
+Date: Mon, 23 Nov 2026 22:42:58 GMT
+Content-Type: text/html
+Content-Length: 170
+Connection: keep-alive
+
+
+## Item 3: Grafana through the Gateway (after scripts/observability-up.sh, 2026-11-23T22:44:35Z)
+$ kubectl get httproute grafana (ResolvedRefs)
+Accepted=True Accepted
+ResolvedRefs=True ResolvedRefs
+$ curl -sI https://contentcollab.app/grafana/
+HTTP/1.1 302 Found
+Server: nginx
+Date: Mon, 23 Nov 2026 22:44:36 GMT
+Content-Type: text/html; charset=utf-8
+Connection: keep-alive
+Cache-Control: no-store
+$ curl -sI https://contentcollab.app/grafana/login
+HTTP/1.1 200 OK
+Server: nginx
+Date: Mon, 23 Nov 2026 22:44:37 GMT
+Content-Type: text/html; charset=UTF-8
+Connection: keep-alive
+Cache-Control: no-store
+$ curl -sI http://contentcollab.app/grafana/
+HTTP/1.1 404 Not Found
+Server: nginx
+Date: Mon, 23 Nov 2026 22:44:37 GMT
+Content-Type: text/html
+Content-Length: 146
+Connection: keep-alive
+$ curl -s /grafana/api/health
+{
+  "database": "ok",
+  "version": "13.3.1",
+  "commit": "da3aa3ff574e7dbbf808c66b6daa744defed0441"
+}
+
+## Item 4: the 75-second demo path, every step through the API and the live URLs (script run from the scratch folder, API and Socket.IO only, no browser)
+# Cloud test of the demo path, 2026-11-23T22:47:06.764Z, https://contentcollab.app
+# Accounts: admin@contentcollab.app (owner), reviewer@contentcollab.app (commenter). No credentials printed.
+PASS  1 admin sign-in  POST /auth/login -> 200 in 929 ms, user admin@contentcollab.app
+PASS  1b reviewer sign-in  -> 200 in 772 ms
+PASS  2 operations panel snapshot (admin)  GET /ops -> 200 in 766 ms; errors {}; 8 containers [undefined:Running undefined:Running undefined:Running undefined:Running undefined:Running undefined:Running undefined:Running undefined:Running]; 2 nodes; hpa 2/2-5 cpu 11%; storage {"claim":{"name":"data-postgres-0","phase":"Bound","capacity":"5Gi","storageClass":"do-block-storage"},"documents":1,"versions":2,"comments":0}; 30 events; links {"grafana":"https://contentcollab.app/grafana/"}
+PASS  2b charts data (CPU and memory series)  GET /ops/series -> 200 in 233 ms, keys ["windowSeconds","stepSeconds","cpu","memory"]
+PASS  2c reviewer is refused the panel  GET /ops as reviewer -> 403
+PASS  2d no token is refused  -> 401
+# before restart: document "Demo document" (200), 2 versions, 0 comments; marker comment POST -> 201 id 7ba31765-2019-42c5-9ee0-cdb12ea941f2
+PASS  3 restart button: PostgreSQL pod drill accepted  POST /ops/drills {target: postgres} -> 200; {"target":"postgres","pod":"postgres-0","startedAt":"2026-11-23T22:47:10.108Z","nextAllowedAt":"2026-11-23T22:48:10.108Z"}; postgres before {}
+# /health polls every 2 s after the drill: 62s:200 64s:200 66s:200 68s:200 70s:200 73s:200 75s:200 77s:200 79s:200 81s:200
+PASS  3b site healthy again after the restart  never reported unhealthy, healthy again 81s after the drill request
+PASS  4 state recovery: document, versions and the marker comment survived  document 200 "Demo document", 2 versions (before 2), 1 comments, marker present true
+FAIL  4b operations panel shows the replaced pod and the drill event  postgres {}; drill events 1: {"at":"2026-11-23T22:47:10.068Z","type":"Drill","reason":"RestartDrill","object":"Pod/postgres-0","text":"Restart drill started by an admin","outcome":"evicted","source":"drill"}; drills {"nextAllowedAt":null}
+PASS  5 Grafana through the Gateway  /grafana/ -> 302 to /grafana/login; /grafana/login -> 200; /grafana/api/health -> 200 { "database": "ok", "version": "13.3.1", "commit": "da3aa3ff574e7dbbf808c66b6daa744defed0441" }; ops links.grafana = {"grafana":"https://contentcollab.app/grafana/"}
+PASS  6a admin uploads a scratch document  POST /documents -> 201 in 279 ms, role owner
+PASS  6b share with the reviewer as viewer  POST /documents/:id/shares -> 201; {"id":"fda3ac02-99bd-45c0-9ab4-a6dac1a2412d","documentId":"760665be-9129-4f26-b489-30d07263d8a5","userId":"3316399c-8f6e-47e1-acfb-09403765dacc","linkToken":null,"role":"viewer","expiresAt":null,"crea
+PASS  6c reviewer's documents list shows it with role viewer  GET /documents as reviewer -> 200, found true, role viewer
+PASS  6d viewer cannot comment (role enforced)  -> 403 FORBIDDEN
+PASS  6e role raised to commenter, the comment now works  PATCH role -> 200; comment -> 201
+PASS  6f scratch document deleted  DELETE -> 204
+PASS  7 live comment reaches the second account without a reload  join ack {"ok":true}; admin POST comment -> 201; reviewer socket got comment:created 87 ms after the POST started; mention event received
+# cleanup: delete comment 7ba31765 -> 204
+# cleanup: delete comment 922d9f52 -> 204
+# after cleanup: 0 comments on the seeded version (before the test: 0)
+# Summary: 17 of 18 checks passed; failed: 4b operations panel shows the replaced pod and the drill event
+
+## Reading of step 4b (a fault in the check, not in the site)
+The check read pod rows by a field name the snapshot does not have (rows carry component, pod, status, ready, node, restarts, startedAt, ageSeconds), so it printed {} and failed. The same snapshot, read again 2 minutes after the drill, shows the result: postgres-0 Running and ready, startedAt 2026-11-23T22:47:10Z (the drill request was 22:47:10Z), restarts 0, and one event source=drill reason=RestartDrill outcome=evicted. 4b is therefore PASS on the data; 18 of 18 once the field names are right.
+container keys: component,pod,status,ready,node,restarts,startedAt,ageSeconds,servingThisRequest
+{"component":"api","pod":"api-5c8c886687-hh55j","status":"Running","ready":true,"node":"default-3aodxs","restarts":0,"startedAt":"2026-11-23T22:44:28Z","ageSeconds":298,"servingThisRequest":true}
+{"component":"api","pod":"api-5c8c886687-qk8g7","status":"Running","ready":true,"node":"default-368do2","restarts":0,"startedAt":"2026-11-23T22:44:11Z","ageSeconds":315,"servingThisRequest":false}
+{"component":"web","pod":"web-768667566d-gstbb","status":"Running","ready":true,"node":"default-368do2","restarts":0,"startedAt":"2026-11-23T22:44:11Z","ageSeconds":315,"servingThisRequest":false}
+{"component":"web","pod":"web-768667566d-hmfdf","status":"Running","ready":true,"node":"default-3aodxs","restarts":0,"startedAt":"2026-11-23T22:44:18Z","ageSeconds":308,"servingThisRequest":false}
+{"component":"worker","pod":"worker-957b9f575-drjzn","status":"Running","ready":true,"node":"default-368do2","restarts":0,"startedAt":"2026-11-23T22:44:11Z","ageSeconds":315,"servingThisRequest":false}
+{"component":"postgres","pod":"postgres-0","status":"Running","ready":true,"node":"default-368do2","restarts":0,"startedAt":"2026-11-23T22:47:10Z","ageSeconds":136,"servingThisRequest":false}
+{"component":"redis","pod":"redis-5495d876dd-fv2dd","status":"Running","ready":true,"node":"default-3aodxs","restarts":0,"startedAt":"2026-11-11T19:20:27Z","ageSeconds":1049339,"servingThisRequest":false}
+{"component":"gateway","pod":"contentcollab-nginx-895f84697-95xhm","status":"Running","ready":true,"node":"default-368do2","restarts":0,"startedAt":"2026-11-20T21:56:15Z","ageSeconds":262391,"servingThisRequest":false}
+drill events: [{"at":"2026-11-23T22:47:10.068Z","type":"Drill","reason":"RestartDrill","object":"Pod/postgres-0","text":"Restart drill started by an admin","outcome":"evicted","source":"drill"}]
+last events: [{"at":"2026-11-23T22:47:18Z","type":"Warning","reason":"Unhealthy","object":"Pod/api-5c8c886687-qk8g7","text":"Readiness probe failed: HTTP probe failed with statuscode: 503","count":2,"source":"kubernetes"},{"at":"2026-11-23T22:47:15Z","type":"Warning","reason":"Unhealthy","object":"Pod/api-5c8c886687-hh55j","text":"Readiness probe failed: HTTP probe failed with statuscode: 503","count":2,"source":"kubernetes"},{"at":"2026-11-23T22:47:15Z","type":"Warning","reason":"Unhealthy","object":"Pod/postgres-0","text":"Readiness probe failed: /var/run/postgresql:5432 - no response\n","co
+
+## Reading of the restart timing
+The first /health request after the drill returned 200 only at 62 s, so a visitor who loads the site during the PostgreSQL restart waits about a minute, as the 20 Nov run showed (44 s to the first event). The API pods report 503 on readiness while PostgreSQL is down (events: Readiness probe failed, 22:47:15Z and 22:47:18Z) and are ready again once it is back. The drill is rate limited to one per 60 s.
+Cleanup: the marker and live-check comments and the scratch document were deleted; the seeded version is back to 0 comments, 2 versions.
+
+## Item 4 follow-up: timing of a second PostgreSQL restart drill (22:50:22Z), /health and the document route polled each second with a 3 s limit
+drill request -> 200 at 2026-11-23T22:50:22.243Z
+0s health=503 document=500
+2s health=503 document=500
+3s health=503 document=500
+5s health=503 document=500
+6s health=503 document=500
+7s health=503 document=500
+8s health=503 document=500
+9s health=503 document=500
+11s health=503 document=500
+12s health=error document=500
+13s health=200 document=200
+first unhealthy at 0s, health and document both 200 again at 13s after the drill request
+postgres-0 conditions: Initialized 22:50:23Z, ContainersReady and Ready 22:50:30Z (kubectl).
+Reading: this restart took 13 s from the request to the site answering again, against 62 s on the first run of this evening and 44 s on 20 Nov. The first run came 3 minutes after the 22:44 deploy (new API pods), and its first /health request did not answer for about a minute; the cause is not proven (it was not repeated). For the demo: do one drill 5 minutes before the slot, so the pod and its image are warm, and plan for up to a minute of pause, not 13 s. The UI text says about 30 seconds.
