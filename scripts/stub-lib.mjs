@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 
 const repoRoot = join(import.meta.dirname, "..");
 // Anything that could aim a script at a real account or change its behaviour
-const SCRUBBED = /^(KUBECONFIG|KUBE_CONTEXT|NAMESPACE|SECRET_NAME|RESTART|DIGITALOCEAN_.*|DOCTL_.*|AWS_.*|SPACES_.*|DB_.*|JWT_SECRET|PROJECT_NAME|ENVIRONMENT|FOREIGN_BUCKET|STUB_.*)$/;
+const SCRUBBED = /^(KUBECONFIG|KUBE_CONTEXT|CLUSTER_NAME|REGION|ROLLOUT|SKIP_HPA_CHECK|HPA|CHART_VERSION|IMAGE_TAG|NAMESPACE|SECRET_NAME|RESTART|DIGITALOCEAN_.*|DOCTL_.*|AWS_.*|SPACES_.*|DB_.*|JWT_SECRET|PROJECT_NAME|ENVIRONMENT|FOREIGN_BUCKET|STUB_.*)$/;
 
 /** @param stubs {command: file in scripts/testdata}; each becomes an executable on PATH */
 export function sandbox(stubs) {
@@ -51,6 +51,13 @@ export function sandbox(stubs) {
         encoding: "utf8",
         timeout: 60_000,
       });
+      return { status: result.status, stdout: result.stdout, stderr: result.stderr, out: `${result.stdout}${result.stderr}` };
+    },
+    /** Runs scripts/<script> with node (same sandbox and guards as run); `args` follow the script. */
+    runNode(script, { env = {}, args = [] } = {}) {
+      const full = envFor(env);
+      guard(full);
+      const result = spawnSync("node", [`scripts/${script}`, ...args], { cwd: repoRoot, env: full, encoding: "utf8", timeout: 60_000 });
       return { status: result.status, stdout: result.stdout, stderr: result.stderr, out: `${result.stdout}${result.stderr}` };
     },
     /** Contents of a file a stub wrote into the sandbox, or "" if it wrote none. */
