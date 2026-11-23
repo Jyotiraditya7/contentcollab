@@ -827,3 +827,19 @@ Read the manifests, workflows and code behind each box, wrote both figures as pl
 - Kept only what the manifests prove, and listed in BUILD_LOG what is left off on purpose (node count, Spaces region, alert policies, the Kubernetes API read by the operations page).
 - Checked the region, schedule, replica counts and routes against the files, not against the old figure.
 - Left for later: the Mermaid diagram at the top of docs/ARCHITECTURE.md still says Toronto and two nodes.
+
+## A kubectl context check for the local scripts, and a queue card on the operations panel, 23 November 2026
+
+### Prompt
+
+Do #106 (every script that changes the cluster refuses to run unless kubectl's current context is the one named, a test per script), then #30 (the worker's queue length on the operations panel, from the existing ops snapshot), each on its own branch with the tests first.
+
+### AI Response
+
+Wrote the design (D32) first, then the failing tests with a stand-in kubectl on another context, then the shared check and the call sites; for #30, three API tests and two web tests that failed, then the snapshot field and a card. An independent read of #106 found a garbled error message (the context name printed twice), which the tests had missed because they matched only the name; it was fixed after a test of the exact text.
+
+### What Your Team Did With It
+
+- Checked DigitalOcean's `kubeconfig save` reference for the context it selects (the reason the check goes after the save) and the kubectl reference for `config current-context`.
+- Saw the first test run fail (11 of 14, the writers ran helm and applied) before the wiring went in; the tests that start Node scripts cannot run on this Windows laptop, so CI on Linux is their first run (PR #170: green).
+- Left for later: `cluster-down.sh` and `alerts.sh` have no check; the queue card shows 0 until something enqueues jobs.
