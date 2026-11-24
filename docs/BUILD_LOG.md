@@ -532,9 +532,9 @@ Each of these pull requests was past its three-day review window with no review,
 
 ## 24 November 2026
 
-### Demo polish before the presentation (ARCHITECTURE D35, PR #176)
+### Demo polish before the presentation (ARCHITECTURE D36, PR #176)
 
-- **Found.** The browser run of the demo path at 4:20 pm (see D35 for the nine items). Checked on the live cluster, read-only: the 5xx ratio never exceeded 0.16 in three days (so the 10000% axis was Grafana's default range), and `kube_horizontalpodautoscaler_status_current_replicas` returned 2 for `api` (the line was hidden by `desired`, also 2).
+- **Found.** The browser run of the demo path at 4:20 pm (see D36 for the nine items). Checked on the live cluster, read-only: the 5xx ratio never exceeded 0.16 in three days (so the 10000% axis was Grafana's default range), and `kube_horizontalpodautoscaler_status_current_replicas` returned 2 for `api` (the line was hidden by `desired`, also 2).
 - **Change.** PR #176, merged 21:45 UTC (4:45 pm Toronto), merge commit c91f416. Tests first: the tests-only commit failed in CI (run 45492321638: api 3 Jest, web-test, observability). Head 4b07fe5: all CI jobs green; web 285 Vitest, api typecheck, lint and format clean. One blind read-only verifier pass found no error; its should-fix items (a test title that claimed more than it checked, an unused CSS rule, ARCHITECTURE and API.md not yet updated) were applied.
 - **Deployed.** Deploy run 45494226108 green at 21:51 UTC; the live bundle contains the new strings ("Operations actions", "older events are not shown") and the live API returns `authorDisplayName` ("Admin" on the "Approved" comment) and the title of the demo document. The Grafana dashboard was applied by hand with `kubectl apply -k k8s/observability` (the deploy workflow does not cover `k8s/observability`), which restarted the Grafana pod once.
 - **Demo set-up.** The reviewer's share of "Design review draft" from the rehearsal was removed through the API (the owner's own share stays); the "Approved" comment on the demo document stays; no application pod was restarted.

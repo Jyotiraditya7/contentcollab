@@ -25,7 +25,7 @@ $env:DEMO_REVIEWER_PASSWORD = [System.Net.NetworkCredential]::new("", (Read-Host
 
 ## The path
 
-Layout of 24 November (D35): the restart buttons and the Grafana link are in one bar directly under the "Operations" heading, with the confirm question and the result right below it, and Recent events is beside Containers. The whole Operations part of the path is done without scrolling at 1280 x 720. The Grafana sign-in is lost when the Grafana pod restarts (it was restarted once on 24 November at 21:52 UTC), so sign in once more in Chrome before the slot. The comments show the author's name ("Admin", "Reviewer"), and the document page is headed with the document's title.
+Layout of 24 November (D36): the restart buttons and the Grafana link are in one bar directly under the "Operations" heading, with the confirm question and the result right below it, and Recent events is beside Containers. The whole Operations part of the path is done without scrolling at 1280 x 720. The Grafana sign-in is lost when the Grafana pod restarts (it was restarted once on 24 November at 21:52 UTC), so sign in once more in Chrome before the slot. The comments show the author's name ("Admin", "Reviewer"), and the document page is headed with the document's title.
 
 Each line is one click or one short action. Times are seconds from the start; the whole path is 75 seconds.
 

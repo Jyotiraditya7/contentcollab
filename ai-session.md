@@ -893,7 +893,7 @@ Wrote a private rehearsal script and ran it three times, found that one demo doc
 - Left for later: the clicks in a browser, the admin's pre-slot comment, and the merge of the pull request.
 
 
-## Demo polish for the 24 November presentation (D35, #176)
+## Demo polish for the 24 November presentation (D36, #176)
 
 ### Prompt
 
