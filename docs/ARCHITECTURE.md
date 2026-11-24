@@ -572,6 +572,20 @@ Sources, checked 23 November 2026: Kubernetes reference, `kubectl config current
 
 **Tests first.** Jest: the access cases (no token, no share, a version of another document), the types, the limits and the diff itself in the API; Vitest for the web view (added and removed lines marked by a sign and a word as well as by colour).
 
+### D34. A preflight script for the live demo, seeding through the API (decided 23 November, #174)
+
+**Problem.** `docs/DEMO_SCRIPT_75s.md` lists set-up steps that a person does by hand before the slot (two accounts, the seeded document, an unshared "Design review draft"). The first rehearsal on 23 November found "Design review draft" missing from the live site: nobody had run that step. A check that says so in one line, before the slot, costs less than finding it in front of the class.
+
+**Decision.** `scripts/demo-preflight.sh`, run from the presenting laptop. It checks, in order, and stops at the first failure with one line that starts `FAIL:`: the kubectl context (D32); every pod in the namespace is Ready and the six components are present (api, web, worker, postgres, redis, the Gateway); the `api` autoscaler exists; `https://contentcollab.app/` answers 200 and `/health` reports postgres and redis ok; the two demo accounts sign in; the admin is allowed into `/ops` and the reviewer is refused; the seeded "Demo document" exists; "Design review draft" exists, and the reviewer cannot see it; and the draft's file downloads from Spaces.
+
+- **Seeding goes through the API, not the database.** A missing account is registered (`/auth/register`), a missing document is uploaded (`POST /documents`), a share left over on the draft is deleted. An upload writes the file to Spaces and a download reads it back, so the Spaces check is a real round trip and no key or `psql` is needed. `scripts/demo-seed.sql` stays the fallback of D28 for when uploads are down.
+- **Passwords are never in the repo or in an argument.** They come from `DEMO_ADMIN_PASSWORD` and `DEMO_REVIEWER_PASSWORD`; the sign-in body goes to curl on standard input and the token goes in a header file, so neither shows in a process list or in the output.
+- **What it does not do.** It does not restart anything, post comments or touch the cluster (reads only), and it cannot add the admin to `OPS_ADMIN_USER_IDS` (a cluster Secret); that is a failure with its own message.
+
+**Option it beat.** Running `psql` against the cluster to seed (the D28 script): it needs a port-forward and the database password on the laptop, it writes rows that point at no file (Download fails), and it would not exercise Spaces. A Node script was the other option; the task and the other cluster scripts are bash, and the script is a list of `curl` and `kubectl` calls.
+
+**Tests first.** `node --test` against stand-ins for `kubectl` and `curl` (the sandbox of `scripts/stub-lib.mjs`): every check has a case that fails with its own message, and each seeding path is asserted on the requests the script sent. Nothing reaches the cluster or the network.
+
 ### D0. Service model
 
 Lecture 1 splits cloud services into IaaS (you manage the OS), PaaS (the provider manages the hosts, you ship containers or code) and FaaS (functions run on events). Assignment 1 was IaaS: a droplet, Nginx, PostgreSQL installed by hand. The project is not that. We use managed Kubernetes, where DigitalOcean runs the control plane and the worker nodes' OS and we run containers (PaaS-style on top of the provider's IaaS), object storage as a service for files, and the provider's metrics and alerts. A DigitalOcean Function is an option for one small event-driven job (a thumbnail when a file lands in Spaces) if we want the serverless advanced feature; it is not in the core path. The point for the proposal: we manage containers and data, not machines.
