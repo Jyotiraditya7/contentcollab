@@ -34,7 +34,7 @@ User       { id, email, displayName, createdAt }
 Document   { id, title, ownerId, currentVersionId, role, tags: [string], createdAt, updatedAt }
 Version    { id, documentId, number, filename, contentType, size, checksum, uploadedBy, createdAt }
 Share      { id, documentId, userId | null, linkToken | null, role, expiresAt | null, createdAt }
-Comment    { id, versionId, authorId, parentId | null, body, anchor | null, resolved, createdAt, updatedAt }
+Comment    { id, versionId, authorId, authorDisplayName | null, parentId | null, body, anchor | null, resolved, createdAt, updatedAt }
 Anchor     { page: number, x: number, y: number }      (0 to 1, relative to the page; null for a general comment)
 Tag        { name, count }
 ```

@@ -891,3 +891,20 @@ Wrote a private rehearsal script and ran it three times, found that one demo doc
 - Decided that seeding goes through the API and not the database, so one upload also proves the Spaces bucket, and that passwords stay in the environment.
 - Ran the preflight against the live cluster themselves (it created the missing draft; the second run changed nothing) and kept the evidence file as raw output, including the run that failed because of a wrong path in the check.
 - Left for later: the clicks in a browser, the admin's pre-slot comment, and the merge of the pull request.
+
+
+## Demo polish for the 24 November presentation (D35, #176)
+
+### Prompt
+
+Fix nine faults found in a browser run of the demo path (selects, Operations layout, chart labels, headline sizes, empty log card, comment author names, document title, share confirmation, two Grafana panels), tests first, merge and deploy the same evening.
+
+### AI Response
+
+Read the code and the live Prometheus data, found that both Grafana faults were not query errors (an all-zero panel under `percentunit`; a hidden line), wrote the failing tests, then the changes, ran a blind verifier, merged after CI and checked the deployed bundle and API.
+
+### What Your Team Did With It
+
+- Chose a fixed 0 to 100% axis for the 5xx panel as the brief asked, and kept `softMax` as the fallback.
+- Applied the Grafana dashboard to the cluster by hand because the deploy workflow does not cover it, and removed the rehearsal share through the API.
+- Left for later: a click-through of the live Operations page, and an end-to-end test of the Grafana panels in a browser.
