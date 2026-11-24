@@ -875,3 +875,19 @@ Prepared the broken-config and revert branches, recorded the web pods and `/heal
 - Merged the two pull requests themselves, one after the other, and kept the site's recording off the rollout window; the gate undid web, api and worker and `/health` answered 200 at every sample.
 - Corrected the diagram (no worker edges to PostgreSQL or Spaces, no sticky sessions) after the independent read, and kept the claim that only a rollout failure was shown, not a smoke-check failure.
 - Left for later: the smoke-check rollback on the cluster (plan on #70), and the other `cluster-up.sh` defaults that the closed #94 carried.
+
+## Rehearsing the 75-second demo on the live site and a preflight script (#174), 23 November 2026
+
+### Prompt
+
+Rehearse every step of the 75-second demo path against the live cluster through the API (sign in as two users, upload, share by role, a comment from one user received by the other over the real-time channel, a database pod restart, the deploy evidence), write a script that checks the cluster, the site and the demo data before the slot and seeds what is missing, and open an issue and a pull request for anything that fails.
+
+### AI Response
+
+Wrote a private rehearsal script and ran it three times, found that one demo document had never been created, wrote the design note (D34), the tests with stand-ins for `kubectl` and `curl` (red first), and the preflight script, then had a separate reviewer read the diff before the pull request; it also assembled the evidence file from the raw runs.
+
+### What Your Team Did With It
+
+- Decided that seeding goes through the API and not the database, so one upload also proves the Spaces bucket, and that passwords stay in the environment.
+- Ran the preflight against the live cluster themselves (it created the missing draft; the second run changed nothing) and kept the evidence file as raw output, including the run that failed because of a wrong path in the check.
+- Left for later: the clicks in a browser, the admin's pre-slot comment, and the merge of the pull request.

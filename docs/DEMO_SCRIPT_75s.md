@@ -2,13 +2,23 @@
 
 For the Wednesday 2 December presentation (slide 5, live demonstration). Rules from `docs/COURSE_PRESENTATION_REQUIREMENTS.md`: no terminal, bash, PowerShell or kubectl on screen; everything is driven from the web app and the browser; a live demo is required and a recording is only a backup. The speaker is Nabeegh. The two demo accounts are named below and never written out with their passwords: the admin account `admin@contentcollab.app` (owner of the seeded document, allowed into the operations panel) and the reviewer account `reviewer@contentcollab.app` (commenter, refused by the operations panel).
 
-What each step does was checked against the live site on 23 November 2026 through the API and the live URLs: 17 of 18 checks passed in the run, and the one failure (4b) was a wrong field name in the check itself; the same snapshot read again passes: `docs/evidence/2026-11-23-cloud-test.txt`. The clicks themselves have not been tried in a browser by this script; the first rehearsal does that.
+What each step does was checked against the live site on 23 November 2026 through the API and the live URLs: 17 of 18 checks passed in the run, and the one failure (4b) was a wrong field name in the check itself; the same snapshot read again passes: `docs/evidence/2026-11-23-cloud-test.txt`. The clicks themselves have not been tried in a browser by this script; the first rehearsal does that. A second pass on the evening of 23 November, again through the API and Socket.IO only, passed 20 of 20 checks after the missing "Design review draft" was seeded (`docs/evidence/2026-11-23-rehearsal.txt`).
 
 ## Set up before the slot (not part of the 75 seconds)
 
+0. Once the pull request for #174 is merged, run the preflight on the presenting laptop, an hour before the slot and again after the last practice restart. It checks the pods, the autoscaler, the HTTPS address, the two accounts, the operations panel's access rules, the two documents and the file download from Spaces, and it creates a missing account or document; it stops at the first failure with one line that starts `FAIL:`. In Windows PowerShell, one line each:
+
+```
+$env:KUBE_CONTEXT = "do-nyc3-contentcollab"
+$env:DEMO_ADMIN_PASSWORD = [System.Net.NetworkCredential]::new("", (Read-Host "Admin password" -AsSecureString)).Password
+$env:DEMO_REVIEWER_PASSWORD = [System.Net.NetworkCredential]::new("", (Read-Host "Reviewer password" -AsSecureString)).Password
+& "C:\Program Files\Git\bin\bash.exe" scripts\demo-preflight.sh
+```
+
+   It ends with `preflight passed`. It needs `kubectl` and `jq` on the path and prints the address of each document. It does not post the comment of step 2 and does not restart anything. A run on 23 November found that the draft of step 3 had never been created; the script now creates it (D34).
 1. Two browser windows side by side on the presenting laptop, each half the screen, display mirrored. Left window: signed out, on `https://contentcollab.app/`. Right window: signed in as the reviewer, on the seeded document's version page (the address is in the local demo notes), showing "Comments".
 2. In the left window, sign in as the admin once, post one comment on the seeded document ("Reviewed the architecture section"), and sign out again. The seeded document starts with no comments, and the restart step is only convincing if something is there to survive it.
-3. Upload a small text file titled "Design review draft" as the admin, and do not share it. The share step needs one document the reviewer cannot see yet. If the reviewer can see it, remove that share before the slot.
+3. Upload a small text file titled "Design review draft" as the admin, and do not share it. The share step needs one document the reviewer cannot see yet. If the reviewer can see it, remove that share before the slot. The preflight (step 0) does both: it uploads the file if it is missing and removes the reviewer's share if there is one.
 4. Chrome has the admin's saved login for the sign-in page, and Grafana's admin login saved for `https://contentcollab.app/grafana/`, so no password is typed on stage. The Grafana sign-in is done once in Chrome ahead of time.
 5. One practice restart of the database pod five minutes before the slot, so the pod and its image are warm; reload the right window afterwards. The pause was 13 seconds on the second run on 23 November, and the first run's first answer came only at 62 seconds (cause not proven); plan for up to a minute.
 6. Do not merge or deploy in the 20 minutes before the slot: a deploy replaces the API pods.
