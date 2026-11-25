@@ -1,0 +1,38 @@
+# 2026-11-25 recovery: one api pod and one web pod deleted on the live cluster do-nyc3-contentcollab
+UTC start: 2026-11-25T15:09:01Z   end: 2026-11-25T15:09:50Z
+Deploy under test: ef5d56f. Commands: kubectl delete pod <name> --wait=false (api, then web); the replacement counts when a pod not in the old list is Ready.
+No data was written by this check: documents, versions and comments are read before and after with the admin token.
+
+## Pods
+api: deleted api-7669546fbd-dgwwp; replacement and time to Ready (ms): api-7669546fbd-z8d9k 17668
+web: deleted web-6b785c8fb5-2hj7q; replacement and time to Ready (ms): web-6b785c8fb5-ffqrv 3818
+now ready api: api-7669546fbd-vglbp api-7669546fbd-z8d9k 
+now ready web: web-6b785c8fb5-ffqrv web-6b785c8fb5-hvbcc 
+restart counts: api-7669546fbd-vglbp:0 api-7669546fbd-z8d9k:0 web-6b785c8fb5-ffqrv:0 web-6b785c8fb5-hvbcc:0 
+
+## Persistence (read before and after)
+documents read: 2; comments read: 1
+before == after (documents, versions, comments, byte for byte): yes
+Limit: versionNumber is null for all 3 versions in the "before" list (the field name I read is not in the API reply), so the comparison covers ids, file names, sizes, titles, comment ids, text and resolved flags, not version numbers.
+before: [{"id":"7a62b260-d33d-4dd5-9fba-8b587743fe68","title":"Design review draft","currentVersionId":"1b2b641a-72ef-4314-96e9-ac09217db875"},{"id":"28d7d0d2-3235-470d-82f7-147c7f8f1a4f","title":"Demo document","currentVersionId":"5ded0b94-86b8-4640-a8a8-ed870e8d3ea2"}] [{"id":"1b2b641a-72ef-4314-96e9-ac09217db875","versionNumber":null,"filename":"upload.txt","size":96}] [] [{"id":"c6e52e0e-489c-4873-9587-a62842d0508b","versionNumber":null,"filename":"demo.pdf","size":0},{"id":"5ded0b94-86b8-4640-a8a8-ed870e8d3ea2","versionNumber":null,"filename":"upload-check.pdf","size":612}] [] [{"id":"ec08d6f8-a96a-4016-a615-3d0e68f2c102","body":"Approved","resolved":false}] 
+
+## Site reachable during the replacements (probing covered the replacement period only, about 29 s of the 49 s run) (GET /health every second through the Gateway, time and HTTP code)
+probes: 29, not 200: 0
+slowest probe (s): 0.385774
+
+Verdict (pods and persistence): PASS.
+
+## Notes
+- The first run of this script (15:07Z) deleted api-7669546fbd-drl98 and web-6b785c8fb5-7n8gx (api back in 17.5 s, web in 3.9 s) but its /health probe did not start and its reads had a Windows line-ending fault, so that run is not used; this file is the second run (15:09Z). Two api and two web pods were replaced in total, with no restart count above 0 on the replacements.
+- Time to Ready is the time from the delete command to the first replacement pod reporting Ready (the api readiness probe checks /health every 5 s). The other pod of each Deployment kept serving, and the Gateway answered 200 on all 29 probes.
+- This check replaces stateless pods. The stored data lives in PostgreSQL on the Retain volume; the documents, versions and comments read before and after are identical, but a PostgreSQL pod delete is not repeated here (see 2026-11-19-restart-test.txt and 2026-11-20-restart-test-drain.txt for that).
+
+## Realtime across pods (scripts/cross-replica.mjs, DIRECT=1, run three times at 15:10-15:11Z, after the replacements)
+Command: DIRECT=1 KUBE_CONTEXT=do-nyc3-contentcollab node scripts/cross-replica.mjs  (document 28d7d0d2..., version 5ded0b94...; EMAIL and PASSWORD set in the shell)
+Two Socket.IO clients are opened on the two api pods through kubectl port-forward, both join the version, a comment is posted over the public REST URL, and the check requires it on both sockets; the comment is deleted afterwards (3 comments written and deleted by this part; the read-only claim above covers the pod check).
+2026-11-25T15:10:48.546Z PASS: the comment reached sockets on api-7669546fbd-vglbp and api-7669546fbd-z8d9k (0 ms and 7 ms after the post was read)
+2026-11-25T15:10:56.619Z PASS: the comment reached sockets on api-7669546fbd-vglbp and api-7669546fbd-z8d9k (13 ms and 13 ms after the post was read)
+2026-11-25T15:11:04.490Z PASS: the comment reached sockets on api-7669546fbd-vglbp and api-7669546fbd-z8d9k (1 ms and 7 ms after the post was read)
+Result: 3 of 3 runs, the comment reached both sockets (on different api pods, the replacement pod z8d9k among them) 0 to 13 ms after the post response was read. Within any threshold of 1 s.
+Limits: both sockets use the same account (an admin), not two people; the sockets connect to the pods directly, not through the Gateway (the Gateway mode miscounted on 21 Nov, see scripts/cross-replica.mjs); the time is measured from the moment the post response was read, so it does not include the browser.
+Verdict: PASS.

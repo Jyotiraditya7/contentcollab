@@ -1,0 +1,34 @@
+# 2026-11-25 /api/v1/ops read on the live site (D35 fields), https://contentcollab.app
+UTC start: 2026-11-25T14:55:57Z
+Deploy under test: ef5d56f (PR #179), pods restarted by that deploy ~14:50Z
+Command: sign in as the demo admin (login 200), then GET /api/v1/ops with the bearer token (password read from a local note, never written here)
+Reply: HTTP 200; without a token: HTTP 401
+generatedAt: 2026-11-25T14:55:58.225Z, cachedForSeconds: 5, namespace: contentcollab
+errors object: {}
+
+## Checks
+PASS  errors is empty (every source answered)
+PASS  six workloads listed (api web worker postgres redis gateway)
+PASS  every workload has ready == desired and desired >= 1
+PASS  hpa present with replicas, bounds and cpu reading
+PASS  storage.claim Bound with capacity and volume name
+PASS  storage.volume reclaimPolicy is Retain
+PASS  backup schedule, last scheduled and last succeeded present
+PASS  backup last run Succeeded
+PASS  last successful backup is less than 26 h old (24944 s, 2026-11-25T08:00:15Z)
+PASS  storage counts documents, versions, comments are numbers
+PASS  alerts table has CPU, Memory, Disk rows at 80% over 5 min
+PASS  alerts CPU and Memory carry a value
+PASS  nodes listed (two)
+PASS  traffic window has requests per second, p95 and error percent
+PASS  queue depth is a number
+PASS  Grafana link present
+
+## Fields that are null in this reading (stated, not hidden)
+alerts Disk valuePercent: null
+storage.diskUsedPercent: null
+
+## Values read
+{"hpa":{"name":"api","currentReplicas":2,"desiredReplicas":2,"minReplicas":2,"maxReplicas":5,"cpuPercent":38,"cpuTargetPercent":70,"lastScaleTime":"2026-11-21T19:18:01Z","limitedBy":null},"workloads":[{"component":"api","desired":2,"ready":2},{"component":"web","desired":2,"ready":2},{"component":"worker","desired":1,"ready":1},{"component":"postgres","desired":1,"ready":1},{"component":"redis","desired":1,"ready":1},{"component":"gateway","desired":1,"ready":1}],"storage":{"claim":{"name":"data-postgres-0","phase":"Bound","capacity":"5Gi","storageClass":"do-block-storage","volumeName":"pvc-6a857bd4-b129-4206-9d31-fd3827574e20"},"volume":{"name":"pvc-6a857bd4-b129-4206-9d31-fd3827574e20","reclaimPolicy":"Retain","storageClass":"do-block-storage","capacity":"5Gi"},"backup":{"schedule":"0 3 * * *","lastScheduledAt":"2026-11-25T08:00:00Z","lastSucceededAt":"2026-11-25T08:00:15Z","lastRun":{"name":"db-backup-29926560","result":"Succeeded","finishedAt":"2026-11-25T08:00:15Z"}},"diskUsedPercent":null,"documents":2,"versions":3,"comments":1},"alerts":{"thresholdPercent":80,"windowMinutes":5,"rows":[{"metric":"CPU","thresholdPercent":80,"valuePercent":14.058084541180078},{"metric":"Memory","thresholdPercent":80,"valuePercent":66.05955591285809},{"metric":"Disk","thresholdPercent":80,"valuePercent":null}]},"queue":{"depth":0},"traffic":{"windowSeconds":60,"requestsPerSecond":0.39999999999999997,"p50Seconds":0.006666666666666668,"p95Seconds":0.02749999999999996,"errorPercent":0,"errorPercent5m":0,"noTraffic":false},"nodes":2,"events":35}
+
+Verdict: PASS. The admin read returns the health lines, storage claim and volume, backup schedule and last success, and the alerts table; the Disk reading is null (the source does not give it).
