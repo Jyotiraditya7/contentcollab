@@ -14,6 +14,8 @@ export default function useRealtime({
   versionId,
   connect = defaultConnect,
   onVersionCreated = noop,
+  onEvent,
+  onState,
 }) {
   const [comments, setComments] = useState([]);
   const [loadState, setLoadState] = useState("loading");
@@ -34,6 +36,21 @@ export default function useRealtime({
     setComments((list) => applyEvent(list, event, payload));
   }, []);
 
+  const handleEvent = useCallback(
+    (event, payload) => {
+      apply(event, payload);
+      onEvent?.(event, payload);
+    },
+    [apply, onEvent],
+  );
+
+  const handleState = useCallback(
+    (state) => {
+      setLiveState(state);
+      onState?.(state);
+    },
+    [onState],
+  );
   const reload = useCallback(async () => {
     const mine = ++newest.current;
     loading.current = true;
@@ -64,15 +81,15 @@ export default function useRealtime({
     const live = connect({
       token,
       versionId,
-      onEvent: apply,
+      onEvent: handleEvent,
       onMention: () => setMentioned(true),
       onVersionCreated,
       onJoined: reload,
-      onState: setLiveState,
+      onState: handleState,
     });
 
     return () => live.close();
-  }, [token, versionId, connect, onVersionCreated, reload, apply]);
+  }, [token, versionId, connect, onVersionCreated, reload, handleEvent, handleState]);
 
   return {
     comments,

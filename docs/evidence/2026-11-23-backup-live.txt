@@ -1,0 +1,29 @@
+# 2026-11-23 live proof of the nightly backup (#147 / #50), cluster do-nyc3-contentcollab
+deploy of 042f43f: run 45282071382 success
+$ get cronjob
+NAME        SCHEDULE    TIMEZONE          SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+db-backup   0 3 * * *   America/Toronto   False     0        14h             2d3h
+$ create job --from=cronjob/db-backup backup-check-23nov (2026-11-23T22:45:03Z)
+job.batch/backup-check-23nov created
+$ wait --for=condition=complete
+job.batch/backup-check-23nov condition met
+$ get job
+NAME                 STATUS     COMPLETIONS   DURATION   AGE
+backup-check-23nov   Complete   1/1           11s        11s
+$ logs -c dump
+total 32
+-rw-r--r-- 1 postgres postgres 29362 Nov 23 22:45 contentcollab.dump
+$ logs -c upload
+Completed 28.7 KiB/28.7 KiB (164.3 KiB/s) with 1 file(s) remainingupload: ../backup/contentcollab.dump to s3://contentcollab/backups/contentcollab-20261123T224507Z.dump
+$ the scheduled 03:00 Toronto runs, upload log of the kept jobs
+-- job.batch/db-backup-29922240
+upload: ../backup/contentcollab.dump to s3://contentcollab/backups/contentcollab-20261122T080004Z.dump
+-- job.batch/db-backup-29923680
+upload: ../backup/contentcollab.dump to s3://contentcollab/backups/contentcollab-20261123T080004Z.dump
+$ delete job backup-check-23nov
+job.batch "backup-check-23nov" deleted from contentcollab namespace
+$ get jobs -l app=db-backup
+NAME                 STATUS     COMPLETIONS   DURATION   AGE
+db-backup-29922240   Complete   1/1           13s        38h
+db-backup-29923680   Complete   1/1           14s        14h
+Result: PASS. Object s3://contentcollab/backups/contentcollab-20261123T224507Z.dump (29362 bytes) written by a job created from the CronJob; the check job is deleted.

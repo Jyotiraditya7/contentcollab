@@ -1,0 +1,127 @@
+# 2026-11-23 rehearsal of docs/DEMO_SCRIPT_75s.md against the live site (kubectl context do-nyc3-contentcollab)
+Runs from 2026-11-24T00:46Z to 01:00Z (19:46 to 20:00 EST on 23 November). The rehearsal script is a private scratch file that signs in as the two demo accounts and prints no password or token; it uses the API, Socket.IO and the live URLs only. scripts/demo-preflight.sh is PR #174.
+
+## A. Rehearsal run 1, 2026-11-24T00:46:50Z: stopped at step 1b (the draft was missing)
+# Rehearsal of docs/DEMO_SCRIPT_75s.md, 2026-11-24T00:46:50.721Z, https://contentcollab.app
+# Accounts: admin@contentcollab.app, reviewer@contentcollab.app. No credentials or tokens printed.
+PASS  1 both demo accounts sign in  admin 200 in 1235 ms, reviewer 200 in 687 ms
+FAIL  1b admin list shows 'Demo document' and 'Design review draft'  titles: Demo document
+# Summary: 1 passed; failed: 1b admin list shows 'Demo document' and 'Design review draft'
+
+## B. scripts/demo-preflight.sh, first live run (between 00:47Z and 00:56Z; it uploaded the missing draft)
+$ KUBE_CONTEXT=do-nyc3-contentcollab bash scripts/demo-preflight.sh
+ok: all 8 pods Ready, all six components present (ignored 6 finished job pod(s))
+ok: autoscaler api: 2 running, may use 2 to 5
+ok: https://contentcollab.app/ answers 200 over HTTPS
+ok: /health: postgres and redis ok
+ok: admin@contentcollab.app signs in
+ok: reviewer@contentcollab.app signs in
+ok: /ops lets the admin in and refuses the reviewer
+ok: "Demo document": https://contentcollab.app/#/documents/28d7d0d2-3235-470d-82f7-147c7f8f1a4f/versions/5ded0b94-86b8-4640-a8a8-ed870e8d3ea2
+uploaded "Design review draft"
+ok: "Design review draft": https://contentcollab.app/#/documents/7a62b260-d33d-4dd5-9fba-8b587743fe68/versions/1b2b641a-72ef-4314-96e9-ac09217db875
+ok: the reviewer cannot see "Design review draft" yet
+ok: the file of "Design review draft" downloads from Spaces
+preflight passed
+exit 0
+
+## C. Rehearsal run 2, 2026-11-24T00:56:52Z: 19 of 20, the failure is a wrong path in check 2c (see Reading, item 2)
+# Rehearsal of docs/DEMO_SCRIPT_75s.md, 2026-11-24T00:56:52.353Z, https://contentcollab.app
+# Accounts: admin@contentcollab.app, reviewer@contentcollab.app. No credentials or tokens printed.
+PASS  1 both demo accounts sign in  admin 200 in 842 ms, reviewer 200 in 654 ms
+PASS  1b admin list shows 'Demo document' and 'Design review draft'  titles: Design review draft | Demo document
+PASS  2 operations panel: 8 containers  200 in 152 ms; api:Running api:Running web:Running web:Running worker:Running postgres:Running redis:Running gateway:Running; nodes 2; errors {}
+PASS  2a autoscaler and storage cards  hpa {"name":"api","currentReplicas":2,"desiredReplicas":2,"minReplicas":2,"maxReplicas":5,"cpuPercent":10,"cpuTargetPercent":70,"lastScaleTime":"2026-11-21T19:18:01Z","limitedBy":"TooFewReplicas"}; claim 5Gi Bound; docs 2 versions 3
+PASS  2b Grafana link on the panel  https://contentcollab.app/grafana/
+FAIL  2c charts data  200
+PASS  2d reviewer is refused the panel
+PASS  2e Grafana login page and health through the Gateway  login 200, health {"database":"ok","version":"13.3.1","commit":"da3aa3ff574e7dbbf808c66b6daa744defed0441"}
+PASS  3a marker comment posted before the drill  201; comments before 0
+PASS  3 restart drill accepted  200 {"target":"postgres","pod":"postgres-0","startedAt":"2026-11-24T00:56:54.772Z","nextAllowedAt":"2026-11-24T00:57:54.772Z"}
+# drill timing: first unhealthy at 0s, healthy again at 12s after the request (last bad poll 11s)
+PASS  3b site answers again within 60 s  12 s
+PASS  3c panel shows the new postgres pod and the drill event  postgres Running ready true age 22s; drill events 3
+PASS  4 document and marker comment survived the restart  document 200; comments 1
+PASS  4a file download from Spaces (Design review draft)  200, 96 bytes
+PASS  5 before: the reviewer cannot see 'Design review draft'
+PASS  5a share with reviewer as commenter  201
+PASS  5b reviewer's list shows it as commenter  role commenter
+PASS  5c a commenter can comment  201
+PASS  5d share removed again, the draft is hidden from the reviewer as before  204
+PASS  6 live comment reaches the reviewer without a reload  join {"ok":true}; POST 201; event after 75 ms
+# cleanup: comments on the seeded version 0 before, 0 after
+# Summary: 19 passed, 1 failed: 2c charts data
+
+## D. Rehearsal run 3, 2026-11-24T00:57:53Z: 20 of 20
+# Rehearsal of docs/DEMO_SCRIPT_75s.md, 2026-11-24T00:57:53.663Z, https://contentcollab.app
+# Accounts: admin@contentcollab.app, reviewer@contentcollab.app. No credentials or tokens printed.
+PASS  1 both demo accounts sign in  admin 200 in 1296 ms, reviewer 200 in 896 ms
+PASS  1b admin list shows 'Demo document' and 'Design review draft'  titles: Design review draft | Demo document
+PASS  2 operations panel: 8 containers  200 in 724 ms; api:Running api:Running web:Running web:Running worker:Running postgres:Running redis:Running gateway:Running; nodes 2; errors {}
+PASS  2a autoscaler and storage cards  hpa {"name":"api","currentReplicas":2,"desiredReplicas":2,"minReplicas":2,"maxReplicas":5,"cpuPercent":33,"cpuTargetPercent":70,"lastScaleTime":"2026-11-21T19:18:01Z","limitedBy":null}; claim 5Gi Bound; docs 2 versions 3
+PASS  2b Grafana link on the panel  https://contentcollab.app/grafana/
+PASS  2c charts data (CPU and memory series with points)  200; cpu 8 pods, memory 8 pods, 53 points each, step 15s
+PASS  2d reviewer is refused the panel
+PASS  2e Grafana login page and health through the Gateway  login 200, health {"database":"ok","version":"13.3.1","commit":"da3aa3ff574e7dbbf808c66b6daa744defed0441"}
+PASS  3a marker comment posted before the drill  201; comments before 0
+PASS  3 restart drill accepted  200 {"target":"postgres","pod":"postgres-0","startedAt":"2026-11-24T00:57:57.685Z","nextAllowedAt":"2026-11-24T00:58:57.685Z"}
+# drill timing: first unhealthy at 0s, healthy again at 12s after the request (last bad poll 11s)
+PASS  3b site answers again within 60 s  12 s
+PASS  3c panel shows the new postgres pod and the drill event  postgres Running ready true age 21s; drill events 4
+PASS  4 document and marker comment survived the restart  document 200; comments 1
+PASS  4a file download from Spaces (Design review draft)  200, 96 bytes
+PASS  5 before: the reviewer cannot see 'Design review draft'
+PASS  5a share with reviewer as commenter  201
+PASS  5b reviewer's list shows it as commenter  role commenter
+PASS  5c a commenter can comment  201
+PASS  5d share removed again, the draft is hidden from the reviewer as before  204
+PASS  6 live comment reaches the reviewer without a reload  join {"ok":true}; POST 201; event after 86 ms
+# cleanup: comments on the seeded version 0 before, 0 after
+# Summary: 20 passed, 0 failed
+
+## E. scripts/demo-preflight.sh, second live run (2026-11-24T00:59:00Z, seeds nothing) and two refusals
+$ KUBE_CONTEXT=do-nyc3-contentcollab bash scripts/demo-preflight.sh
+ok: all 8 pods Ready, all six components present (ignored 6 finished job pod(s))
+ok: autoscaler api: 2 running, may use 2 to 5
+ok: https://contentcollab.app/ answers 200 over HTTPS
+ok: /health: postgres and redis ok
+ok: admin@contentcollab.app signs in
+ok: reviewer@contentcollab.app signs in
+ok: /ops lets the admin in and refuses the reviewer
+ok: "Demo document": https://contentcollab.app/#/documents/28d7d0d2-3235-470d-82f7-147c7f8f1a4f/versions/5ded0b94-86b8-4640-a8a8-ed870e8d3ea2
+ok: "Design review draft": https://contentcollab.app/#/documents/7a62b260-d33d-4dd5-9fba-8b587743fe68/versions/1b2b641a-72ef-4314-96e9-ac09217db875
+ok: the reviewer cannot see "Design review draft" yet
+ok: the file of "Design review draft" downloads from Spaces
+preflight passed
+exit 0
+$ KUBE_CONTEXT=nonexistent bash scripts/demo-preflight.sh
+error: context "nonexistent" does not exist
+FAIL: could not read pods in contentcollab on nonexistent
+exit 1
+$ DEMO_ADMIN_PASSWORD= KUBE_CONTEXT=do-nyc3-contentcollab bash scripts/demo-preflight.sh   (last two lines)
+ok: /health: postgres and redis ok
+FAIL: set DEMO_ADMIN_PASSWORD (read -rs DEMO_ADMIN_PASSWORD && export DEMO_ADMIN_PASSWORD); it is never kept in the repository
+exit 1
+
+## F. Deploy and rollback state at 2026-11-24T01:00Z
+$ gh run list --workflow deploy.yml -L 6   (id, conclusion, created UTC, head, title)
+45288563346 success 2026-11-23T23:24:40Z 2dc59ae feat(ops): jobs waiting in the worker queue on the operations panel
+45287599402 success 2026-11-23T23:18:07Z b02d287 Revert "chore(web): deliberately broken nginx config to prove the deploy gate"
+45286454462 failure 2026-11-23T23:10:25Z fb13da8 chore(web): deliberately broken nginx config to prove the deploy gate
+45282071382 success 2026-11-23T22:41:32Z 042f43f feat(k8s): nightly pg_dump CronJob to Spaces and a restore runbook
+45089361490 success 2026-11-23T00:32:20Z a3aa4fc feat(web): run the web image as the unprivileged nginx user on port 8080
+45088934819 success 2026-11-23T00:28:00Z 8829fda feat(web): share a document with a user and role
+$ kubectl rollout status deploy/api, deploy/web, deploy/worker
+deployment "api" successfully rolled out
+deployment "web" successfully rolled out
+deployment "worker" successfully rolled out
+The failed run 45286454462 is the deliberate one: the gate undid web, api and worker and /health answered 200 at every sample (docs/evidence/2026-11-23-rollback.txt). The smoke-check rollback (a /health that answers 200 with a wrong status word) was not exercised (#70).
+
+## Reading
+1. The first run stopped at step 1b because "Design review draft" did not exist on the live site. It is manual set-up step 3 of DEMO_SCRIPT_75s.md and had not been done. Nothing was wrong with the site: scripts/demo-preflight.sh (#174) now seeds it through the upload route, and its second run seeded nothing.
+2. The second rehearsal run reported 19 of 20: check 2c read GET /ops/series at `.cpu` and the response nests the series under `.series` (`{series: {windowSeconds, stepSeconds, cpu, memory}}`). The status was 200 and the data is there (8 pods, 15 s step); the check was corrected and the third run is 20 of 20.
+3. What the 20 checks cover: sign-in of both accounts, both documents listed, the Operations snapshot (8 containers on 2 nodes, autoscaler 2 of 2 to 5, a 5Gi Bound claim, the Grafana link), the chart series, the refusal of the reviewer, Grafana's login page and health through the Gateway, a real restart of postgres-0, the site answering again, the new pod and the drill event on the panel, the document and a marker comment surviving, the draft downloading from Spaces, the share by role (and the commenter's comment accepted) and the share removed again, and a comment reaching the reviewer's Socket.IO connection.
+4. Restart pauses, request to the site answering again: 12 s and 12 s on these two runs (13 s on the earlier second run, one unexplained 62 s on the first run of 23 November). The demo script's advice stays: plan for up to a minute.
+5. A live comment reached the reviewer's socket 75 ms and 86 ms after the POST on these two runs.
+6. State left behind: the seeded version has 0 comments (before and after each run; the marker and test comments were deleted), the share on the draft was removed again, the reviewer cannot see the draft. DEMO_SCRIPT_75s.md set-up step 2 (the admin's comment "Reviewed the architecture section") is not done on the live site: do it by hand before the slot, after the last restart drill.
+7. Not covered: no browser. This is the API, Socket.IO and the live URLs only; the clicks in the script have still not been tried in a browser.

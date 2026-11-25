@@ -1,0 +1,92 @@
+# 2026-11-23 #70: the deploy gate rolls back a deliberately broken web image, live cluster do-nyc3-contentcollab
+Change: PR 168 (merge fb13da8) put one invalid directive in web/nginx.conf; CI passed 10 of 10 because it builds the web image without starting it. Revert: PR 169.
+Deploy run of the broken commit: 45286454462, https://github.com/nabeegh-khan/contentcollab/actions/runs/45286454462 : conclusion failure (rollout job 23:12:18Z to 23:15:05Z).
+
+## The gate's own lines (rollout job log, UTC)
+2026-11-23T23:12:35.8925411Z Waiting for deployment "api" rollout to finish: 1 out of 2 new replicas have been updated...
+2026-11-23T23:12:46.7965542Z Waiting for deployment "api" rollout to finish: 1 out of 2 new replicas have been updated...
+2026-11-23T23:12:46.8301978Z Waiting for deployment "api" rollout to finish: 1 out of 2 new replicas have been updated...
+2026-11-23T23:12:46.8403560Z Waiting for deployment "api" rollout to finish: 1 old replicas are pending termination...
+2026-11-23T23:12:57.6344706Z Waiting for deployment "api" rollout to finish: 1 old replicas are pending termination...
+2026-11-23T23:13:00.4625931Z Waiting for deployment "api" rollout to finish: 1 old replicas are pending termination...
+2026-11-23T23:13:00.4870974Z deployment "api" successfully rolled out
+2026-11-23T23:13:00.7589480Z deployment "worker" successfully rolled out
+2026-11-23T23:13:01.0173418Z Waiting for deployment "web" rollout to finish: 1 out of 2 new replicas have been updated...
+2026-11-23T23:15:01.0022897Z error: timed out waiting for the condition
+2026-11-23T23:15:01.0068821Z ##[error]deployment/web did not turn ready
+2026-11-23T23:15:01.5050367Z deployment.apps/web rolled back
+2026-11-23T23:15:03.5133225Z deployment.apps/api rolled back
+2026-11-23T23:15:03.8322599Z deployment.apps/worker rolled back
+2026-11-23T23:15:03.8350419Z ##[error]Process completed with exit code 1.
+
+## Every 10 s from the watcher: time (UTC), deploy run status, /health HTTP code, web pods (name ready phase waiting-reason restarts image-tag). Sampling gaps of about 12 s are the cost of each kubectl call.
+23:10:52 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:11:05 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:11:14 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:11:19 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:11:26 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:11:31 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:11:38 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:11:49 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:12:01 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:12:14 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:12:26 run=in_progress health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:12:39 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   <none>   1     9f0b08f;web-768667566d-gstbb   true    Running   <none>   0     0149f67;web-768667566d-hmfdf   true    Running   <none>   0     0149f67;
+23:12:51 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   <none>   2     9f0b08f;web-768667566d-gstbb   true    Running   <none>   0     0149f67;web-768667566d-hmfdf   true    Running   <none>   0     0149f67;
+23:13:03 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   2     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:13:20 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   <none>   3     9f0b08f;web-768667566d-gstbb   true    Running   <none>   0     0149f67;web-768667566d-hmfdf   true    Running   <none>   0     0149f67;
+23:13:32 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   3     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:13:44 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   3     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:13:56 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   3     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:14:08 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   4     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:14:20 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   4     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:14:32 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   4     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:14:44 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   4     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:14:56 run=in_progress health=200 | web-64cf749756-l4dfz   false   Running   CrashLoopBackOff   4     9f0b08f;web-768667566d-gstbb   true    Running   <none>             0     0149f67;web-768667566d-hmfdf   true    Running   <none>             0     0149f67;
+23:15:08 run=completed failure health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:15:20 run=completed failure health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:15:33 run=completed failure health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+23:15:44 run=completed failure health=200 | web-768667566d-gstbb   true   Running   <none>   0     0149f67;web-768667566d-hmfdf   true   Running   <none>   0     0149f67;
+
+Image tags: 0149f67 is the previous release (old pods), 9f0b08f the broken commit's pods.
+
+## After the run (rollout history of web before the run could not be read: the first kubectl call timed out on TLS; revisions 12 to 20, 22 and 23 existed afterwards)
+## end
+run 45286454462: completed failure
+$ rollout history deployment/web
+deployment.apps/web 
+REVISION  CHANGE-CAUSE
+12        <none>
+13        <none>
+14        <none>
+15        <none>
+16        <none>
+17        <none>
+18        <none>
+19        <none>
+20        <none>
+22        <none>
+23        <none>
+
+$ get pods -l app=web
+NAME                   READY   STATUS    RESTARTS   AGE
+web-768667566d-gstbb   1/1     Running   0          31m
+web-768667566d-hmfdf   1/1     Running   0          31m
+
+## Reading
+- The new web pod (image 9f0b08f) never became Ready: its container restarted 1, 2, 3, 4 times and sat in CrashLoopBackOff. The two old pods stayed Ready the whole time (maxUnavailable 0) and /health answered 200 at every sample: the site did not go down.
+- After 120 s (23:13:01 to 23:15:01) 'rollout status' timed out, the gate ran 'rollout undo' on web (23:15:01) and then, because one failure undoes every Deployment this run changed, on api and worker (23:15:03); the run ended failed, exit code 1. api and worker were rolled forward again by the revert deploy.
+- The reverted commit's deploy (PR 169, run 45287599402) was green.
+
+## After the revert (PR 169 merged, run 45287599402: success)
+2026-11-23T23:21:32Z
+NAME                   READY   STATUS    RESTARTS   AGE
+web-5dd6c88cf9-8pdxv   1/1     Running   0          58s
+web-5dd6c88cf9-bqxm9   1/1     Running   0          54s
+22        <none>
+23        <none>
+24        <none>
+
+/health: {"status":"ok","postgres":"ok","redis":"ok"}
+web image: ghcr.io/nabeegh-khan/contentcollab-web:b02d2870f6e0b79359e34b37b10e5de895b80ba0
+101

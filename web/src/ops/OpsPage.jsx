@@ -1,18 +1,24 @@
 // The operations page (D31): what kubectl would show, as cards that refresh every 5 s, for an operator.
+import FunctionCard from "./FunctionCard.jsx";
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client.js";
 import { getOps } from "./api.js";
 import {
+  AlertsCard,
   ContainersCard,
   EventsCard,
   HpaCard,
   LogsCard,
   NodesCard,
+  QueueCard,
   StorageCard,
   TrafficCard,
 } from "./cards.jsx";
 import DrillCard from "./DrillCard.jsx";
+import GrafanaEmbed from "./GrafanaEmbed.jsx";
+import HealthSummary from "./HealthSummary.jsx";
 import SeriesCard from "./SeriesCard.jsx";
+import SessionsCard from "./SessionsCard.jsx";
 import { agoText } from "./format.js";
 
 const REFRESH_MS = 5000;
@@ -117,11 +123,6 @@ export default function OpsPage({ token }) {
       <header className="ops-head">
         <h1>Operations</h1>
         <p>{age === null ? "Loading..." : `Updated ${agoText(age)}`}</p>
-        {isWebAddress(data?.links?.grafana) && (
-          <a href={data.links.grafana} target="_blank" rel="noreferrer">
-            Open Grafana for the details
-          </a>
-        )}
       </header>
       {(stale || (failed && !data)) && (
         <p role="alert" className="ops-banner">
@@ -131,17 +132,39 @@ export default function OpsPage({ token }) {
         </p>
       )}
       {data && (
-        <div className="ops-grid">
-          <ContainersCard data={data} />
-          <HpaCard data={data} />
-          <SeriesCard token={token} />
-          <NodesCard data={data} />
-          <StorageCard data={data} />
-          <TrafficCard data={data} />
-          <DrillCard token={token} nextAllowedAt={data.drills?.nextAllowedAt ?? null} />
-          <EventsCard data={data} />
-          <LogsCard data={data} />
-        </div>
+        <>
+          {/* What is said first on this page: is the system healthy (D35) */}
+          <HealthSummary data={data} />
+          {/* One bar under the heading holds every action of the demo; its question and result stay beside it */}
+          <DrillCard token={token} nextAllowedAt={data.drills?.nextAllowedAt ?? null}>
+            {isWebAddress(data.links?.grafana) && (
+              <a
+                className="ops-action ops-link"
+                href={data.links.grafana}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open Grafana for the details
+              </a>
+            )}
+          </DrillCard>
+          <div className="ops-grid">
+            <ContainersCard data={data} />
+            <EventsCard data={data} />
+            <HpaCard data={data} />
+            <TrafficCard data={data} />
+            <SeriesCard token={token} />
+            <SessionsCard token={token} />
+            <NodesCard data={data} />
+            <StorageCard data={data} />
+            <QueueCard data={data} />
+            <FunctionCard data={data} />
+            <AlertsCard data={data} />
+            <LogsCard data={data} />
+          </div>
+          {/* The dashboard itself, under the charts (D37) */}
+          <GrafanaEmbed link={data.links?.grafana} />
+        </>
       )}
     </section>
   );

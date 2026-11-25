@@ -811,3 +811,116 @@ Wrote the tests and pushed them alone so CI showed the out-of-range case failing
 
 - Corrected two mistakes of the first test commit (a broken newline escape and a message pattern that did not match the script's wording) before the fix went in.
 - Left for later: item 5 of #113 and the merge of PR #166.
+
+## Redrawing the architecture figure from main, 23 November 2026
+
+### Prompt
+
+The architecture picture still shows Datadog, Toronto and two nodes. Redraw it from what is on main (the manifests in k8s/ and the workflows), plus a simpler one-slide version of at most ten boxes, readable when projected, and keep the SVG editable.
+
+### AI Response
+
+Read the manifests, workflows and code behind each box, wrote both figures as plain SVG, measured every label and arrow in a headless browser (text inside its box, no overlaps, no arrow through a box) and rendered 1920 px PNGs; an independent read of the result found no wrong box or number, and three drawing problems (dashed and solid arrows used inconsistently, one arrow pointing the wrong way, a label that read as Postgres writing to Spaces) plus three over-strong sentences in the log entry, all fixed.
+
+### What Your Team Did With It
+
+- Kept only what the manifests prove, and listed in BUILD_LOG what is left off on purpose (node count, Spaces region, alert policies, the Kubernetes API read by the operations page).
+- Checked the region, schedule, replica counts and routes against the files, not against the old figure.
+- Left for later: the Mermaid diagram at the top of docs/ARCHITECTURE.md still says Toronto and two nodes.
+
+## A kubectl context check for the local scripts, and a queue card on the operations panel, 23 November 2026
+
+### Prompt
+
+Do #106 (every script that changes the cluster refuses to run unless kubectl's current context is the one named, a test per script), then #30 (the worker's queue length on the operations panel, from the existing ops snapshot), each on its own branch with the tests first.
+
+### AI Response
+
+Wrote the design (D32) first, then the failing tests with a stand-in kubectl on another context, then the shared check and the call sites; for #30, three API tests and two web tests that failed, then the snapshot field and a card. An independent read of #106 found a garbled error message (the context name printed twice), which the tests had missed because they matched only the name; it was fixed after a test of the exact text.
+
+### What Your Team Did With It
+
+- Checked DigitalOcean's `kubeconfig save` reference for the context it selects (the reason the check goes after the save) and the kubectl reference for `config current-context`.
+- Saw the first test run fail (11 of 14, the writers ran helm and applied) before the wiring went in; the tests that start Node scripts cannot run on this Windows laptop, so CI on Linux is their first run (PR #170: green).
+- Left for later: `cluster-down.sh` and `alerts.sh` have no check; the queue card shows 0 until something enqueues jobs.
+
+## Comparing two versions of a text document, 23 November 2026
+
+### Prompt
+
+Build #23: write the design line first (what is compared, where the diff is computed, who may see it), then the API route that returns the line diff of two versions with the same 403/404 rules as the version routes, then a "Compare versions" view on the document page; tests first, on my own branch.
+
+### AI Response
+
+Wrote D33, then failing tests for the rules and the view, then the route, a copy of the worker's line diff for the API and the component; an independent read of the diff then checked access, route order and the limits.
+
+### What Your Team Did With It
+
+- Chose to compute the diff in the API and not through the worker queue, because nothing enqueues jobs yet and no result is stored; the choice and the option it beat are in D33.
+- Ran the rules and view tests red, then green; the six route tests need a database that this laptop does not have, so CI runs them first.
+- Left for later: PDF and image comparison, and a browser check.
+
+## The deploy gate's live rollback and the cluster-up region default, 23 November 2026
+
+### Prompt
+
+Prove the deploy gate's rollback on the live site with one deliberately broken web config that CI cannot see, record the run, revert it, then fix the region default in cluster-up.sh to the cluster's real region with a test that fails first, and bring the diagram and evidence docs in line.
+
+### AI Response
+
+Prepared the broken-config and revert branches, recorded the web pods and `/health` every 10 seconds through the failed run, wrote the evidence file from the run log, and made the region change test first with a stand-in `doctl`; a separate read of the docs then found a worker edge in the diagram that the code does not support and a stale comment.
+
+### What Your Team Did With It
+
+- Merged the two pull requests themselves, one after the other, and kept the site's recording off the rollout window; the gate undid web, api and worker and `/health` answered 200 at every sample.
+- Corrected the diagram (no worker edges to PostgreSQL or Spaces, no sticky sessions) after the independent read, and kept the claim that only a rollout failure was shown, not a smoke-check failure.
+- Left for later: the smoke-check rollback on the cluster (plan on #70), and the other `cluster-up.sh` defaults that the closed #94 carried.
+
+## Rehearsing the 75-second demo on the live site and a preflight script (#174), 23 November 2026
+
+### Prompt
+
+Rehearse every step of the 75-second demo path against the live cluster through the API (sign in as two users, upload, share by role, a comment from one user received by the other over the real-time channel, a database pod restart, the deploy evidence), write a script that checks the cluster, the site and the demo data before the slot and seeds what is missing, and open an issue and a pull request for anything that fails.
+
+### AI Response
+
+Wrote a private rehearsal script and ran it three times, found that one demo document had never been created, wrote the design note (D34), the tests with stand-ins for `kubectl` and `curl` (red first), and the preflight script, then had a separate reviewer read the diff before the pull request; it also assembled the evidence file from the raw runs.
+
+### What Your Team Did With It
+
+- Decided that seeding goes through the API and not the database, so one upload also proves the Spaces bucket, and that passwords stay in the environment.
+- Ran the preflight against the live cluster themselves (it created the missing draft; the second run changed nothing) and kept the evidence file as raw output, including the run that failed because of a wrong path in the check.
+- Left for later: the clicks in a browser, the admin's pre-slot comment, and the merge of the pull request.
+
+
+## Demo polish for the 24 November presentation (D36, #176)
+
+### Prompt
+
+Fix nine faults found in a browser run of the demo path (selects, Operations layout, chart labels, headline sizes, empty log card, comment author names, document title, share confirmation, two Grafana panels), tests first, merge and deploy the same evening.
+
+### AI Response
+
+Read the code and the live Prometheus data, found that both Grafana faults were not query errors (an all-zero panel under `percentunit`; a hidden line), wrote the failing tests, then the changes, ran a blind verifier, merged after CI and checked the deployed bundle and API.
+
+### What Your Team Did With It
+
+- Chose a fixed 0 to 100% axis for the 5xx panel as the brief asked, and kept `softMax` as the fallback.
+- Applied the Grafana dashboard to the cluster by hand because the deploy workflow does not cover it, and removed the rehearsal share through the API.
+- Left for later: a click-through of the live Operations page, and an end-to-end test of the Grafana panels in a browser.
+
+## Grafana dashboard inside the Operations page (D37, #178)
+
+### Prompt
+
+Show the ContentCollab Grafana dashboard inside the Operations page so the demo never leaves the app: allow embedding in Grafana, keep the login, add an iframe with a title and fixed height, keep the link as a fallback, tests first.
+
+### AI Response
+
+Checked the live response headers and Grafana's documentation, found that the dashboard uid in the repo differs from the address first suggested, wrote the design (D37) and the failing tests, then the component and the one manifest line, ran a blind review, and checked the applied cluster change and the deployed bundle.
+
+### What Your Team Did With It
+
+- Chose to keep the login as the gate rather than allow anonymous viewing, and accepted that `allow_embedding` is a global switch (noted in D37 as a limit).
+- Applied the Grafana change by hand because the deploy workflow does not cover `k8s/observability`.
+- Left for later: a click-through of the frame in the live page, and a `frame-ancestors` policy.

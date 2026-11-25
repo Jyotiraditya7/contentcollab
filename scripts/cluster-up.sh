@@ -12,7 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."   # paths below are relative to the repository root
 
 : "${CLUSTER_NAME:=contentcollab}"
-: "${REGION:=tor1}"
+: "${REGION:=nyc3}"   # the live cluster is in nyc3: tor1 returned 422 "insufficient capacity" for the three sizes tried (D13); Spaces stays in tor1
 : "${NODE_SIZE:=s-2vcpu-2gb}"   # smallest size that runs two api pods plus postgres comfortably
 : "${NODE_COUNT:=2}"
 : "${LETSENCRYPT_EMAIL:?set LETSENCRYPT_EMAIL to the address Lets Encrypt notifies about expiry}"
@@ -38,6 +38,10 @@ if ! doctl kubernetes cluster get "$CLUSTER_NAME" >/dev/null 2>&1; then
 fi
 # Writes the cluster's credentials into ~/.kube/config and selects it
 doctl kubernetes cluster kubeconfig save "$CLUSTER_NAME"
+# doctl selects "the newest cluster in your account", so confirm it is this one before anything is applied (#106, D32)
+region=$(doctl kubernetes cluster get "$CLUSTER_NAME" --format Region --no-header)
+source scripts/lib/kube-context.sh
+require_kube_context "${KUBE_CONTEXT:-do-$region-$CLUSTER_NAME}"
 kubectl get nodes
 
 # 2. Gateway API CRDs (standard channel) and the NGINX controller.

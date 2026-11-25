@@ -1,0 +1,45 @@
+# 2026-11-25 backup restored into a scratch database on the live cluster (D30, #50), do-nyc3-contentcollab
+UTC: fresh backup 15:06:26Z, restore 15:06:41Z. Deploy ef5d56f.
+Commands:
+ 1. kubectl -n contentcollab create job --from=cronjob/db-backup backup-evidence-25nov   (a new dump from the nightly CronJob, so "latest" is current; the 03:00 Toronto dump of 25 Nov also succeeded, see 2026-11-25-ops-read.txt)
+    -> upload: s3://contentcollab/backups/contentcollab-20261125T150626Z.dump (29.3 KiB); the check job was deleted afterwards
+ 2. KUBE_CONTEXT=do-nyc3-contentcollab bash scripts/restore-check.sh
+    restores the newest dump into the new database "restore_check" (never into "contentcollab"), counts rows in every public table in the copy and, read-only, in the live database, then drops "restore_check"
+Output of step 2 (trimmed):
+---- fetch (init container)
+newest dump: contentcollab-20261125T150626Z.dump
+Completed 29.3 KiB/29.3 KiB (482.8 KiB/s) with 1 file(s) remainingdownload: s3://contentcollab/backups/contentcollab-20261125T150626Z.dump to ../backup/restore.dump
+---- restore
+NOTICE:  database "restore_check" does not exist, skipping
+== restored copy (restore_check)
+comment_mentions 0
+comments 1
+document_tags 0
+document_versions 3
+documents 2
+ops_drills 5
+pgmigrations 3
+restart_test 3
+shares 3
+tags 0
+users 2
+== live database (contentcollab), read only
+comment_mentions 0
+comments 1
+document_tags 0
+document_versions 3
+documents 2
+ops_drills 5
+pgmigrations 3
+restart_test 3
+shares 3
+tags 0
+users 2
+scratch database dropped
+job.batch "db-restore-check-20261125150641" deleted from contentcollab namespace
+restore check passed
+
+Check after the run: databases on postgres-0 are "contentcollab postgres template0 template1"; restore_check is gone. The restore Job and the backup check Job are deleted.
+Comparison, restored copy vs live, 11 tables: all 11 counts equal (comments 1, document_versions 3, documents 2, ops_drills 5, pgmigrations 3, restart_test 3, shares 3, users 2, and zero for comment_mentions, document_tags, tags).
+Limit: the tables are small (the demo data), so this shows the dump restores completely and the counts match; it does not test a large database. Row counts, not a row-by-row diff.
+Verdict: PASS.

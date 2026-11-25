@@ -14,6 +14,7 @@ const OTHER = "22222222-2222-4222-8222-222222222222";
 const OK = 200;
 const UNAUTHORIZED = 401;
 const FORBIDDEN = 403;
+const NOT_FOUND = 404;
 const CACHE_MS = 5000;
 const env = { OPS_ADMIN_USER_IDS: ADMIN };
 
@@ -30,6 +31,7 @@ const sources = (over: Partial<OpsSources> = {}): OpsSources => ({
       restarts: 0,
       startedAt: "2026-11-21T19:23:20Z",
       ageSeconds: 1000,
+      lastRestartAt: null,
       servingThisRequest: true,
     },
   ],
@@ -51,6 +53,7 @@ const sources = (over: Partial<OpsSources> = {}): OpsSources => ({
     p50Seconds: 0.006,
     p95Seconds: 0.012,
     errorPercent: 0,
+    errorPercent5m: 0,
     noTraffic: false,
   }),
   claim: async () => ({
@@ -58,6 +61,7 @@ const sources = (over: Partial<OpsSources> = {}): OpsSources => ({
     phase: "Bound",
     capacity: "5Gi",
     storageClass: "do-block-storage",
+    volumeName: "pvc-6a857bd4",
   }),
   counts: async () => ({ documents: 12, versions: 19, comments: 7 }),
   events: async () => [],
@@ -170,6 +174,69 @@ describe("GET /api/v1/ops document", () => {
     expect(res.body.traffic).toBeNull();
   });
 
+  it("gives the worker queue's waiting jobs, and a reason when the queue cannot be read (#30)", async () => {
+    const ok = await get(appWith(sources({ queue: async () => 3 })));
+    expect((await get(appWith(sources({ queue: async () => 0 })))).body.queue).toEqual({
+      depth: 0,
+    });
+    expect(ok.body.queue).toEqual({ depth: 3 });
+    expect(ok.body.errors).toEqual({});
+    const failed = await get(
+      appWith(
+        sources({
+          queue: async () => {
+            throw new Error("redis down");
+          },
+        }),
+      ),
+    );
+    expect(failed.body.queue).toEqual({ depth: null });
+    expect(failed.body.errors).toEqual({ queue: "unavailable" });
+    expect(JSON.stringify(failed.body)).not.toContain("redis down");
+  });
+
+  it("gives the serverless function card, and a reason when the list cannot be read (D39)", async () => {
+    const [CALL_MS, COMPUTE_MS, INPUT_BYTES] = [120, 4.2, 900];
+    const invocation = {
+      at: "2026-11-25T15:00:00.000Z",
+      outcome: "function" as const,
+      ms: CALL_MS,
+      computeMs: COMPUTE_MS,
+      inputBytes: INPUT_BYTES,
+      reason: null,
+    };
+    const ok = await get(
+      appWith(
+        sources({ functions: async () => ({ configured: true, invocations: [invocation] }) }),
+      ),
+    );
+    expect(ok.body.functions).toEqual({ configured: true, invocations: [invocation] });
+    const failed = await get(
+      appWith(
+        sources({
+          functions: async () => {
+            throw new Error("redis down");
+          },
+        }),
+      ),
+    );
+    expect(failed.body.functions).toBeNull();
+    expect(failed.body.errors).toEqual({ functions: "unavailable" });
+    expect(JSON.stringify(failed.body)).not.toContain("redis down");
+  });
+
+  it("has no function card where no source is given", async () => {
+    const res = await get(appWith(sources()));
+    expect(res.body.functions).toBeNull();
+    expect(res.body.errors).toEqual({});
+  });
+
+  it("has no queue figure where no queue source is given", async () => {
+    const res = await get(appWith(sources()));
+    expect(res.body.queue).toEqual({ depth: null });
+    expect(res.body.errors).toEqual({});
+  });
+
   it("claim and counts fail separately", async () => {
     const res = await get(
       appWith(
@@ -181,6 +248,9 @@ describe("GET /api/v1/ops document", () => {
       ),
     );
     expect(res.body.storage).toEqual({
+      volume: null,
+      backup: null,
+      diskUsedPercent: null,
       claim: expect.objectContaining({ phase: "Bound" }),
       documents: null,
       versions: null,
@@ -375,5 +445,194 @@ describe("GET /api/v1/ops/series", () => {
     });
     await Promise.all([getSeries(app), getSeries(app), getSeries(app)]);
     expect(reads).toBe(1);
+  });
+});
+
+describe("GET /api/v1/ops core health (D35)", () => {
+  const get = (app: express.Express) =>
+    request(app)
+      .get("/api/v1/ops")
+      .set("Authorization", `Bearer ${token(ADMIN)}`);
+  const PAIR = 2;
+  const DISK_PERCENT = 12.5;
+  const POLICY_THRESHOLD = 80;
+  const POLICY_WINDOW = 5;
+  const given: Partial<OpsSources> = {
+    workloads: async () => [{ component: "api", desired: PAIR, ready: PAIR }],
+    volume: async () => ({
+      name: "pvc-6a857bd4",
+      reclaimPolicy: "Retain",
+      storageClass: "do-block-storage",
+      capacity: "5Gi",
+    }),
+    backup: async () => ({
+      schedule: "0 3 * * *",
+      lastScheduledAt: "2026-11-24T08:00:00Z",
+      lastSucceededAt: "2026-11-24T08:00:13Z",
+      lastRun: { name: "db-backup-1", result: "Succeeded", finishedAt: "2026-11-24T08:00:13Z" },
+    }),
+    diskUsed: async () => DISK_PERCENT,
+    alerts: async () => ({
+      thresholdPercent: POLICY_THRESHOLD,
+      windowMinutes: POLICY_WINDOW,
+      rows: [{ metric: "CPU", thresholdPercent: POLICY_THRESHOLD, valuePercent: 31 }],
+    }),
+  };
+
+  it("carries the workloads, the volume, the last backup, the disk figure and the alerts table", async () => {
+    const res = await get(appWith(sources(given)));
+    expect(res.body.errors).toEqual({});
+    expect(res.body.workloads).toEqual([{ component: "api", desired: PAIR, ready: PAIR }]);
+    expect(res.body.storage.volume).toMatchObject({ reclaimPolicy: "Retain" });
+    expect(res.body.storage.backup).toMatchObject({
+      lastRun: { result: "Succeeded" },
+      lastSucceededAt: "2026-11-24T08:00:13Z",
+    });
+    expect(res.body.storage.diskUsedPercent).toBe(DISK_PERCENT);
+    expect(res.body.alerts).toMatchObject({ thresholdPercent: POLICY_THRESHOLD });
+  });
+
+  it("leaves them null, with no error, where a source is not given (no cluster)", async () => {
+    const res = await get(appWith(sources()));
+    expect(res.body.workloads).toBeNull();
+    expect(res.body.alerts).toBeNull();
+    expect(res.body.storage).toMatchObject({ volume: null, backup: null, diskUsedPercent: null });
+    expect(res.body.errors).toEqual({});
+  });
+
+  it("each of them fails alone, with a reason and nothing from the failure text", async () => {
+    const boom = async () => {
+      throw new Error("forbidden: internal detail 10.0.0.9");
+    };
+    const res = await get(
+      appWith(
+        sources({
+          ...given,
+          workloads: boom,
+          volume: boom,
+          backup: boom,
+          diskUsed: boom,
+          alerts: boom,
+        }),
+      ),
+    );
+    expect(res.status).toBe(OK);
+    expect(res.body.errors).toEqual({
+      workloads: "unavailable",
+      volume: "unavailable",
+      backup: "unavailable",
+      diskUsed: "unavailable",
+      alerts: "unavailable",
+    });
+    expect(res.body.workloads).toBeNull();
+    expect(res.body.storage.diskUsedPercent).toBeNull();
+    expect(JSON.stringify(res.body)).not.toContain("internal detail");
+    expect(res.body.containers).not.toBeNull();
+  });
+
+  it("a disk figure of null (no such series) is not an error: it is not measured", async () => {
+    const res = await get(appWith(sources({ ...given, diskUsed: async () => null })));
+    expect(res.body.storage.diskUsedPercent).toBeNull();
+    expect(res.body.errors).toEqual({});
+  });
+});
+
+describe("GET /api/v1/ops/sessions (D38)", () => {
+  const COUNTS = {
+    total: 5,
+    partial: false,
+    replicas: [
+      { replica: "api-a", sessions: 3 },
+      { replica: "api-b", sessions: 2 },
+    ],
+  };
+  const getSessions = (app: express.Express, sub = ADMIN) =>
+    request(app)
+      .get("/api/v1/ops/sessions")
+      .set("Authorization", `Bearer ${token(sub)}`);
+
+  function appWithSessions(sessions?: () => Promise<object>) {
+    process.env.JWT_SECRET = SECRET;
+    const app = express();
+    app.use(
+      "/api/v1/ops",
+      opsRoutes(sources(), {
+        env,
+        ttlMs: CACHE_MS,
+        now: () => 0,
+        grafanaUrl: null,
+        ...(sessions ? { sessions } : {}),
+      }),
+    );
+    app.use(errorHandler);
+    return app;
+  }
+
+  it("returns the counts for an admin, uncached by the browser", async () => {
+    const res = await getSessions(appWithSessions(async () => COUNTS));
+    expect(res.status).toBe(OK);
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(res.body).toEqual({ sessions: COUNTS });
+  });
+
+  it("is 401 without a token and 403 for a non-admin", async () => {
+    const app = appWithSessions(async () => COUNTS);
+    expect((await request(app).get("/api/v1/ops/sessions")).status).toBe(UNAUTHORIZED);
+    expect((await getSessions(app, OTHER)).status).toBe(FORBIDDEN);
+  });
+
+  it("answers 200 with a reason when the count cannot be made, never the error text", async () => {
+    const res = await getSessions(
+      appWithSessions(async () => {
+        throw new Error("connect ECONNREFUSED 10.0.0.9:6379");
+      }),
+    );
+    expect(res.status).toBe(OK);
+    expect(res.body).toEqual({ sessions: null, error: "unavailable" });
+  });
+
+  it("asks the replicas once per window however many callers", async () => {
+    let asked = 0;
+    const app = appWithSessions(async () => {
+      asked += 1;
+      return COUNTS;
+    });
+    await Promise.all([getSessions(app), getSessions(app), getSessions(app)]);
+    expect(asked).toBe(1);
+  });
+
+  it("is 404 when no sessions source is given to the router", async () => {
+    expect((await getSessions(appWithSessions())).status).toBe(NOT_FOUND);
+  });
+});
+
+describe("GET /api/v1/ops/sessions window (D38)", () => {
+  const WINDOW_MS = 2000;
+  it("asks again once the 2 s default window has passed, not before", async () => {
+    process.env.JWT_SECRET = SECRET;
+    let clock = 0;
+    let asked = 0;
+    const app = express();
+    app.use(
+      "/api/v1/ops",
+      opsRoutes(sources(), {
+        env,
+        now: () => clock,
+        grafanaUrl: null,
+        sessions: async () => ({ total: (asked += 1) }),
+      }),
+    );
+    app.use(errorHandler);
+    const get = () =>
+      request(app)
+        .get("/api/v1/ops/sessions")
+        .set("Authorization", `Bearer ${token(ADMIN)}`);
+    await get();
+    clock = WINDOW_MS - 1;
+    await get();
+    expect(asked).toBe(1);
+    clock = WINDOW_MS + 1;
+    await get();
+    expect(asked).toBe(2);
   });
 });

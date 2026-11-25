@@ -1,0 +1,18 @@
+# 2026-11-25 drop of two files on the live site (#190, #192, D40), https://contentcollab.app
+UTC start: 2026-11-25T16:17:08Z, end 16:17:11Z
+Deploy under test: f2ea581 (PR #193), deploy run 45651775812, success at 16:15:49Z; live bundle assets/index-LHV4OIxx.js
+Method: headless Chrome (Playwright), sign in as the demo admin (login read from a local note, not written here), then one drag-and-drop sequence (dragenter, dragover, drop) with a DataTransfer holding two small text files onto the drop zone.
+
+## Observed
+PASS  signed in, Documents page shown
+PASS  one drop of two files made two uploads; the list shows a line per file:
+        live-check-161710-a.txt Uploaded "live-check-161710-a.txt".
+        live-check-161710-b.txt Uploaded "live-check-161710-b.txt".
+PASS  one toast for the batch: "2 files uploaded." with a Dismiss button
+PASS  the Notifications region has aria-live="polite"
+PASS  both documents appear in the list (2 "Open live-check-161710" links)
+Screenshot: docs/evidence/2026-11-25-upload-toast.png
+
+## Not checked
+The toast going away after 5 s, a refused file, and the versions panel were not run live (covered by the Vitest tests). The drop was a synthetic event, not a mouse drag from the file manager.
+Two demo documents (live-check-161710-a.txt and -b.txt) were left in the admin's list; no delete route is used here.

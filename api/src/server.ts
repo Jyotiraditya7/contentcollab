@@ -11,15 +11,18 @@ import healthRoutes from "./routes/health.js";
 import metricsRoutes from "./routes/metrics.js";
 import { validateStorageConfig } from "./lib/storage.js";
 import { statusRoutes } from "./routes/status.js";
+import { functionConfigFromEnv, redisInvocationStore } from "./lib/functionDiff.js";
 import { latencyFrom, queueDepth } from "./lib/status.js";
 import { cachedFor, inClusterGet, readyReplicas } from "./lib/replicas.js";
 import { httpDuration } from "./lib/metrics.js";
 import authRoutes from "./routes/auth.js";
 import commentsRoutes from "./routes/comments.js";
 import { jwtSecret } from "./middleware/requireAuth.js";
-import compareRoutes, { compareEnabled } from "./routes/compare.js";
+import compareRoutes from "./routes/compare.js";
 import { createServer } from "node:http";
 import { createSocketServer } from "./lib/socket.js";
+import { realtimeServer } from "./lib/realtime.js";
+import { countSessions, replicaName } from "./lib/ops/sessions.js";
 import sharesRoutes from "./routes/shares.js";
 import linksRoutes from "./routes/links.js";
 import { opsRoutes } from "./routes/ops.js";
@@ -58,6 +61,7 @@ app.use(
 // Operations panel (D31): cluster internals, so sign-in and an admin check sit on the whole router
 const prometheusUrl = process.env.PROMETHEUS_URL;
 const store = drillStore(pool);
+const invocations = redisInvocationStore(redis);
 let countsRunning = false;
 app.use(
   "/api/v1/ops",
@@ -71,6 +75,12 @@ app.use(
       // a read is not started while the last one still runs: a hung database holds one pool client, not one per window
       drillRows: store.drillRows,
       nextDrill: () => nextDrillAt(redis),
+      queueDepth: () =>
+        redis.isReady ? queueDepth(redis) : Promise.reject(new Error("redis not ready")),
+      functionCard: async () => ({
+        configured: functionConfigFromEnv(process.env) !== null,
+        invocations: await invocations.recent(),
+      }),
       sql: async () => {
         if (countsRunning) throw new Error("the previous count is still running");
         countsRunning = true;
@@ -90,6 +100,12 @@ app.use(
     }),
     {
       grafanaUrl: process.env.GRAFANA_URL ?? null,
+      // Open WebSocket sessions over all replicas (D38); the server exists only when this file is the entry point
+      sessions: async () => {
+        const io = realtimeServer();
+        if (!io) throw new Error("the realtime server is not running");
+        return countSessions(io, replicaName());
+      },
       ...(prometheusUrl ? { series: () => seriesFrom(prometheusRange(prometheusUrl)) } : {}),
       // The restart drill (D31): only in a cluster, where there is a pod to evict
       ...(kubeGet
@@ -117,8 +133,8 @@ app.use(
   ),
 );
 app.use("/api/v1/auth", authRoutes);
-// Version comparison (#23, D21): off unless FEATURE_VERSION_COMPARE=1
-if (compareEnabled(process.env)) app.use("/api/v1/documents", compareRoutes);
+// Version comparison (#23, D33): before the versions router, so "compare" is not read as a version id
+app.use("/api/v1/documents", compareRoutes);
 
 app.use("/api/v1", commentsRoutes);
 

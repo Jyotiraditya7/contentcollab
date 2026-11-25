@@ -1,7 +1,8 @@
 // The comments of one version: load, post, reply, resolve, delete, and live changes from other tabs (D28).
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client.js";
 import { createComment, deleteComment, updateComment } from "../api/comments.js";
+import { useToasts } from "../toasts/ToastProvider.jsx";
 import CommentBody from "./CommentBody.jsx";
 import CommentForm from "./CommentForm.jsx";
 import { authorLabel, buildThreads } from "./thread.js";
@@ -35,15 +36,49 @@ export default function CommentsPanel({
   connect,
   onVersionCreated,
 }) {
+  const [replyTo, setReplyTo] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const { notify } = useToasts();
+
+  const wasLive = useRef(false);
+  const lost = useRef(false);
+
+  const handleEvent = useCallback(
+    (event, payload) => {
+      if (event === "comment:created" && payload.authorId !== user.id) {
+        const who = authorLabel(payload.authorId, user.id, payload.authorDisplayName);
+        notify({ kind: "info", text: `${who} commented.` });
+      }
+    },
+    [notify, user.id],
+  );
+
+  const handleState = useCallback(
+    (state) => {
+      if (state === "live") {
+        if (lost.current) notify({ kind: "success", text: "Live updates are back." });
+        lost.current = false;
+        wasLive.current = true;
+      } else if ((state === "reconnecting" || state === "offline") && wasLive.current) {
+        if (!lost.current) notify({ kind: "error", text: "Live updates lost." });
+        lost.current = true;
+      } else if ((state === "error" || state === "offline") && !wasLive.current) {
+        notify({ kind: "error", text: "Live updates are not available." });
+        wasLive.current = true;
+      }
+    },
+    [notify],
+  );
+
   const { comments, loadState, liveState, mentioned, setMentioned, apply } = useRealtime({
     token,
     documentId,
     versionId,
     connect,
     onVersionCreated,
+    onEvent: handleEvent,
+    onState: handleState,
   });
-  const [replyTo, setReplyTo] = useState(null);
-  const [actionError, setActionError] = useState(null);
 
   // The relative times ("2 min ago") move on without a reload: the clock ticks every 30 seconds
   const [now, setNow] = useState(() => new Date());
@@ -87,7 +122,7 @@ export default function CommentsPanel({
     return (
       <div className="comment">
         <p className="comment-meta">
-          <span>{authorLabel(comment.authorId, user.id)}</span>{" "}
+          <span>{authorLabel(comment.authorId, user.id, comment.authorDisplayName)}</span>{" "}
           <time dateTime={comment.createdAt}>
             {formatClock(comment.createdAt)} ({relativeTime(comment.createdAt, now)})
           </time>
@@ -120,9 +155,7 @@ export default function CommentsPanel({
   return (
     <section className="card comments">
       <h3>Comments</h3>
-      <p role="status" className={`live live-${liveState}`}>
-        {LIVE_TEXT[liveState]}
-      </p>
+      <p className={`live live-${liveState}`}>{LIVE_TEXT[liveState]}</p>
       {mentioned && (
         <p className="notice">
           Someone mentioned you in a comment.{" "}
