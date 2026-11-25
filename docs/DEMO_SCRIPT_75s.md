@@ -25,6 +25,8 @@ $env:DEMO_REVIEWER_PASSWORD = [System.Net.NetworkCredential]::new("", (Read-Host
 
 ## The path
 
+Since 25 November (D37) the Grafana dashboard is shown inside the Operations page, under the cards, so the Grafana step needs no new tab; the "Open Grafana for the details" link stays as the fallback. Grafana's sign-in is kept in the browser: it is lost when the Grafana pod restarts (it was restarted for D37 on 25 November), so sign in once more before the slot.
+
 Layout of 24 November (D36): the restart buttons and the Grafana link are in one bar directly under the "Operations" heading, with the confirm question and the result right below it, and Recent events is beside Containers. The whole Operations part of the path is done without scrolling at 1280 x 720. The Grafana sign-in is lost when the Grafana pod restarts (it was restarted once on 24 November at 21:52 UTC), so sign in once more in Chrome before the slot. The comments show the author's name ("Admin", "Reviewer"), and the document page is headed with the document's title.
 
 Each line is one click or one short action. Times are seconds from the start; the whole path is 75 seconds.
@@ -35,8 +37,8 @@ Each line is one click or one short action. Times are seconds from the start; th
 | 0:06 | Documents | Click "Operations" in the top bar | The Operations page with every demo control in one bar under the heading (Restart the database pod, Restart an API pod, Open Grafana for the details) and Recent events beside Containers, so nothing needs a scroll: Containers (8 pods on 2 nodes), Autoscaler (API copies running: 2 of 2, may use 2 to 5), Nodes, Storage (database disk about 5 GiB, bound; documents, versions, comments), the CPU and memory charts, Recent events | "We watch the cluster from here, no terminal. Eight pods, two nodes, a disk for the database." |
 | 0:15 | Operations | Click "Restart the database pod" in the bar under the heading | A question, directly under the bar: "Restart the database pod?" with Cancel and Restart | "Now I stop the database on purpose." |
 | 0:18 | Operations | Click "Restart" | The message "Kubernetes is stopping pod postgres-0. A new one will start: watch the events below." The cards may stay frozen until the database is back (the API is not ready while it is down) | "Kubernetes starts a new database pod on the same disk." |
-| 0:23 | Operations | Click "Open Grafana for the details", the third control in the same bar (opens a new tab) | Grafana's ContentCollab dashboard: request rate, errors, latency, autoscaler replicas, node memory | "Meanwhile Grafana, a separate pod, shows request rate, errors and latency." |
-| 0:33 | Grafana | Close the tab (Ctrl+W) | Back on Operations; wait a second for it to refresh: the postgres row is Running with an age of seconds and Recent events lists the restart. If the banner "The data on screen is older than 15 seconds" shows, the database is still coming back | "The new pod is running; its age is seconds." (If the banner shows: "the page is waiting for the database", and stay a few seconds longer.) |
+| 0:23 | Operations | Scroll down the Operations page to the "Grafana dashboard" section (D37), which stays in the app | Grafana's ContentCollab dashboard inside the page: request rate, errors, latency, autoscaler replicas, node memory | "Meanwhile Grafana, a separate pod, shows request rate, errors and latency." |
+| 0:33 | Operations | Scroll back up to the cards (Home key) | Back at the top of Operations; wait a second for it to refresh: the postgres row is Running with an age of seconds and Recent events lists the restart. If the banner "The data on screen is older than 15 seconds" shows, the database is still coming back | "The new pod is running; its age is seconds." (If the banner shows: "the page is waiting for the database", and stay a few seconds longer.) |
 | 0:39 | Operations | Click "Documents", then "Open" on the seeded document | The document page, with the comment posted before the slot still listed | "The document and its comment are still here. The data lived on the volume, not in the pod." |
 | 0:47 | Document | Click "Back to documents", then "Share" on the "Design review draft" row | The share form with that document's id filled in | "Sharing and roles, our security feature. I pick the document and a person." |
 | 0:53 | Documents | In the form type `reviewer@contentcollab.app`, choose the role "commenter", click "Share" | "Shared with reviewer@contentcollab.app as commenter." | "The role is enforced by the API: a viewer cannot comment, a commenter can." |
@@ -51,7 +53,8 @@ The restart is the only step with dead time, so Grafana sits inside it. The team
 ## What can go wrong, and the answer
 
 - The share shows "already shared": the reviewer already had the document. Use a different untouched document, or remove the share.
-- Grafana asks for a login: Chrome's saved login was not set. Skip the Grafana line, stay on the Charts section of Operations, and keep the sentence about request rate and latency for the charts there.
+- The Grafana frame shows Grafana's sign-in page (Chrome's saved login was not set, or Grafana's pod restarted): click "Open Grafana for the details" in the bar, which opens Grafana in a tab, or skip the Grafana line.
+- Grafana asks for a login in that tab: Chrome's saved login was not set. Skip the Grafana line, stay on the Charts section of Operations, and keep the sentence about request rate and latency for the charts there.
 - The comment does not appear in the right window: the right window lost its connection. Reload it, then post again.
 - The restart button is greyed: another drill ran less than a minute ago ("Next drill allowed in ... s").
 

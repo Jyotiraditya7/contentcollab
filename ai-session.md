@@ -908,3 +908,19 @@ Read the code and the live Prometheus data, found that both Grafana faults were 
 - Chose a fixed 0 to 100% axis for the 5xx panel as the brief asked, and kept `softMax` as the fallback.
 - Applied the Grafana dashboard to the cluster by hand because the deploy workflow does not cover it, and removed the rehearsal share through the API.
 - Left for later: a click-through of the live Operations page, and an end-to-end test of the Grafana panels in a browser.
+
+## Grafana dashboard inside the Operations page (D37, #178)
+
+### Prompt
+
+Show the ContentCollab Grafana dashboard inside the Operations page so the demo never leaves the app: allow embedding in Grafana, keep the login, add an iframe with a title and fixed height, keep the link as a fallback, tests first.
+
+### AI Response
+
+Checked the live response headers and Grafana's documentation, found that the dashboard uid in the repo differs from the address first suggested, wrote the design (D37) and the failing tests, then the component and the one manifest line, ran a blind review, and checked the applied cluster change and the deployed bundle.
+
+### What Your Team Did With It
+
+- Chose to keep the login as the gate rather than allow anonymous viewing, and accepted that `allow_embedding` is a global switch (noted in D37 as a limit).
+- Applied the Grafana change by hand because the deploy workflow does not cover `k8s/observability`.
+- Left for later: a click-through of the frame in the live page, and a `frame-ancestors` policy.
