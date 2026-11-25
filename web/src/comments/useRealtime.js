@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+// Loads one version's comments and keeps them current from the live connection (D28).
+import { useCallback, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { listComments } from "../api/comments.js";
 import { connectVersion } from "../realtime.js";
@@ -22,8 +23,8 @@ export default function useRealtime({
   const [liveState, setLiveState] = useState("connecting");
   const [mentioned, setMentioned] = useState(false);
 
-  // Pins are anchored comments, so they always stay in sync with the comment list.
-  const pins = useMemo(() => comments.filter((comment) => comment.anchor), [comments]);
+  const latestVersionCreated = useRef(onVersionCreated);
+  latestVersionCreated.current = onVersionCreated;
 
   // Only the newest list answer is used, and events arriving during a load are replayed
   // on top of it, so a slow response cannot overwrite a newer live change.
@@ -83,23 +84,20 @@ export default function useRealtime({
       versionId,
       onEvent: handleEvent,
       onMention: () => setMentioned(true),
-      onVersionCreated,
+      onVersionCreated: (payload) => latestVersionCreated.current(payload),
       onJoined: reload,
       onState: handleState,
     });
 
     return () => live.close();
-  }, [token, versionId, connect, onVersionCreated, reload, handleEvent, handleState]);
+  }, [token, versionId, connect, reload, handleEvent, handleState]);
 
   return {
     comments,
-    pins,
-    setComments,
     loadState,
     liveState,
     mentioned,
     setMentioned,
     apply,
-    reload,
   };
 }

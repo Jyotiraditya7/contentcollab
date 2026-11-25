@@ -1,3 +1,4 @@
+// Tests loading, live comment updates, mentions, version changes, and connection cleanup (D28).
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import useRealtime from "./useRealtime.js";
@@ -59,9 +60,8 @@ describe("useRealtime", () => {
     expect(result.current.liveState).toBe("live");
   });
 
-  it("applies live comment events and derives pins from anchored comments", async () => {
-    const { live } = setup([comment("c1")]);
-    const connect = setupConnect(live);
+  it("applies live comment events and keeps anchored comments", async () => {
+    const { live, connect } = setup([comment("c1")]);
 
     const { result } = renderHook(() =>
       useRealtime({ token: "t0k", documentId: DOC, versionId: VER, connect }),
@@ -74,7 +74,9 @@ describe("useRealtime", () => {
     act(() => live.handlers.onEvent("comment:created", anchored));
 
     expect(result.current.comments.map((item) => item.id)).toEqual(["c1", "c2"]);
-    expect(result.current.pins).toEqual([anchored]);
+    expect(result.current.comments.find((item) => item.id === "c2").anchor).toEqual(
+      anchored.anchor,
+    );
   });
 
   it("tracks mentions and forwards version:created notifications", async () => {
@@ -137,10 +139,3 @@ describe("useRealtime", () => {
     expect(live.close).toHaveBeenCalledTimes(1);
   });
 });
-
-function setupConnect(live) {
-  return vi.fn((options) => {
-    live.handlers = options;
-    return { close: live.close };
-  });
-}
