@@ -3,6 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client.js";
 import { downloadVersion, listVersions, uploadVersion } from "../api/versions.js";
 import { documentHash } from "../route.js";
+import { useToasts } from "../toasts/ToastProvider.jsx";
+import DropZone from "../uploads/DropZone.jsx";
+import UploadList from "../uploads/UploadList.jsx";
+import { summarizeBatch } from "../uploads/summary.js";
+import { useUploads } from "../uploads/useUploads.js";
 import VersionCompare from "./VersionCompare.jsx";
 
 function sizeText(bytes) {
@@ -28,9 +33,9 @@ function reason(error, what) {
 export default function VersionsPanel({ token, documentId, versionId }) {
   const [versions, setVersions] = useState([]);
   const [loadState, setLoadState] = useState("loading");
-  const [message, setMessage] = useState(null);
   const [problem, setProblem] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const uploads = useUploads();
+  const { notify } = useToasts();
   const fileInput = useRef(null);
 
   const reload = useCallback(async () => {
@@ -46,25 +51,40 @@ export default function VersionsPanel({ token, documentId, versionId }) {
     reload();
   }, [reload]);
 
+  // One at a time, in the order of the list: a version's number is set when its request arrives (D40)
+  async function uploadFiles(files) {
+    await uploads.start(files, {
+      concurrency: 1,
+      send: async (file) =>
+        `Uploaded as version ${(await uploadVersion(token, documentId, file)).number}.`,
+      reasonOf: (error) => reason(error, "upload"),
+      after: async (items) => {
+        notify(summarizeBatch(items));
+        if (items.some((item) => item.status === "done")) await reload();
+      },
+    });
+  }
+
+  const tellBusy = () =>
+    notify({
+      kind: "info",
+      text: "Wait for the current upload to finish, then drop the files again.",
+    });
+
   async function upload() {
-    const file = fileInput.current?.files?.[0];
-    setMessage(null);
-    if (!file) {
+    const files = Array.from(fileInput.current?.files ?? []);
+    if (files.length === 0) {
       setProblem("Choose a file first.");
       return;
     }
     setProblem(null);
-    setBusy(true);
-    try {
-      const created = await uploadVersion(token, documentId, file);
-      setMessage(`Uploaded as version ${created.number}.`);
-      if (fileInput.current) fileInput.current.value = "";
-      await reload();
-    } catch (error) {
-      setProblem(reason(error, "upload"));
-    } finally {
-      setBusy(false);
-    }
+    if (fileInput.current) fileInput.current.value = "";
+    await uploadFiles(files);
+  }
+
+  function drop(files) {
+    setProblem(null);
+    return uploadFiles(files);
   }
 
   async function download(version) {
@@ -115,15 +135,17 @@ export default function VersionsPanel({ token, documentId, versionId }) {
         ))}
       </ul>
       <VersionCompare token={token} documentId={documentId} versions={versions} />
-      <label className="field">
-        <span>New version (a file)</span>
-        <input type="file" ref={fileInput} />
-      </label>
+      <DropZone onFiles={drop} onBusyDrop={tellBusy} disabled={uploads.busy}>
+        <label className="field">
+          <span>New version (a file)</span>
+          <input type="file" multiple ref={fileInput} />
+        </label>
+      </DropZone>
       {problem && <p role="alert">{problem}</p>}
-      {message && <p role="status">{message}</p>}
-      <button type="button" className="primary" disabled={busy} onClick={upload}>
+      <button type="button" className="primary" disabled={uploads.busy} onClick={upload}>
         Upload as a new version
       </button>
+      <UploadList items={uploads.items} />
     </>
   );
 }
